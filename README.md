@@ -24,6 +24,10 @@ io handlers (see: https://sourceware.org/newlib/libc.html#Stubs)
  - `d [address] [count]`: Disassemble for `address` (default current address) the `count` **bytes** (default 32)
  - **TODO** `a [address]`: Assembler next line into `address` (default current address)
 
+## Screenshoots
+
+![](screenshoot.png)
+
 ## Legals
 
 This software contains parts of `libopcodes` from binutils-gdb and
