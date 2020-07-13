@@ -27,6 +27,7 @@ io handlers (see: https://sourceware.org/newlib/libc.html#Stubs)
 ## Screenshoots
 
 ![](screenshoot.png)
+![](screenshoot-animated.svg)
 
 ## Legals
 
