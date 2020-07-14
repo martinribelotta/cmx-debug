@@ -20,9 +20,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <unctrl.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #include "disassembler.h"
 
@@ -95,7 +101,7 @@ static void hexdump(const char *params)
    uintptr_t addr = as_ptr;
    char type = 'b';
    if (*params) {
-      type = *params;
+      type = *params++;
       params = nextword(params);
       if (*params) {
          if (sscanf(params, "%i", &addr) != 1) {
@@ -116,6 +122,14 @@ static void hexdump(const char *params)
          printf("\n%08X: ", addr);
       }
       switch(type) {
+      case 'c':
+         if (isprint(*((char*)addr))) {
+            printf("%c", *((char*)addr));
+         } else {
+            printf("\u2592");
+         }
+         addr += sizeof(char);
+         break;
       case 'w':
          printf("%08X ", *((uint32_t*)addr));
          addr += sizeof(uint32_t);
@@ -135,6 +149,91 @@ static void hexdump(const char *params)
    printf("\n");
 }
 
+static void load_file(const char *params)
+{
+   static char filename[64] = "dump.bin";
+   uint32_t addr = as_ptr;
+   uint32_t count = 32;
+   if (*params) {
+      char *ptr = filename;
+      const char *src = params;
+      params = skipword(params);
+      while (src < params)
+         *ptr++ = *src++;
+      *ptr = 0;
+      params = skipspaces(params);
+      if (*params) {
+         if (sscanf(params, "%i", &addr) != 1) {
+            printf("Cannot decode %s as addr\n", params);
+            return;
+         }
+         params = nextword(params);
+         if (*params) {
+            if (sscanf(params, "%i", &count) != 1) {
+               printf("Cannot decode %s as count\n", params);
+               return;
+            }
+         }
+      }
+   }
+   printf("loading %s\n", filename);
+   int fd = open(filename, O_RDONLY);
+   if (fd == -1) {
+      printf("error open: %s\n", strerror(errno));
+      return;
+   }
+   count = read(fd, (void*) addr, count);
+   close(fd);
+   if (count == -1) {
+      printf("error read: %s\n", strerror(errno));
+      return;
+   }
+   printf("Readed %d bytes into 0x%08X\n", count, addr);
+}
+
+static void store_file(const char *params)
+{
+   static char filename[64] = "dump.bin";
+   uint32_t addr = as_ptr;
+   uint32_t count = 32;
+   if (*params) {
+      char *ptr = filename;
+      const char *src = params;
+      params = skipword(params);
+      while (src < params)
+         *ptr++ = *src++;
+      *ptr = 0;
+      params = skipspaces(params);
+      if (*params) {
+         if (sscanf(params, "%i", &addr) != 1) {
+            printf("Cannot decode %s as addr\n", params);
+            return;
+         }
+         params = nextword(params);
+         if (*params) {
+            if (sscanf(params, "%i", &count) != 1) {
+               printf("Cannot decode %s as count\n", params);
+               return;
+            }
+         }
+      }
+   }
+   printf("dumping %s\n", filename);
+   int fd = open(filename, O_WRONLY);
+   if (fd == -1) {
+      printf("error open: %s\n", strerror(errno));
+      return;
+   }
+   count = write(fd, (void*) addr, count);
+   close(fd);
+   if (count == -1) {
+      printf("error write: %s\n", strerror(errno));
+      return;
+   }
+   printf("Writed %d bytes from 0x%08X to file %s\n", count, addr, filename);
+}
+
+
 static void repl(void)
 {
    static char line[128];
@@ -150,9 +249,11 @@ static void repl(void)
       puts(
          "HELP:\n"
          "  h:                        this help\n"
-         "  x [w|h|b] [addr] [count]: hex dump\n"
-         "  d [addr] [count]:         disassemble\n"
-         "  a [addr]:                 assemble\n"
+         "  x [c|w|h|b] [addr] [count]: hex dump in [c]har, [w]ord, [h]alf or [b]yte at addr, count bytes\n"
+         "  d [addr] [count]:         disassemble from addr count bytes\n"
+         "  a [addr]:                 assemble into addr\n"
+         "  l <file> [addr] [count]:  load count bytes from file to addr\n"
+         "  s <file> [addr] [count]:  store cound bytes in at addr file\n"
       );
       break;
    case 'x':
@@ -175,6 +276,14 @@ static void repl(void)
       // Set/get pointer
       setgetptr(nextword(ptr));
       break;
+   case 'l':
+   case 'L':
+      load_file(nextword(ptr));
+      break;
+   case 's':
+   case 'S':
+      store_file(nextword(ptr));
+      break;
    case '\0':
       // EOL
       break;
@@ -184,8 +293,11 @@ static void repl(void)
    }
 }
 
+extern void initialise_monitor_handles(void);
+
 int main()
 {
+   initialise_monitor_handles();
    printf("Debugger console\n");
    while (1)
       repl();

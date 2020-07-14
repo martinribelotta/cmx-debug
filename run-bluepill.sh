@@ -26,4 +26,4 @@ F=${B}/build/tdebug.bin
 S=${B}/run-bluepill.cfg
 CMD="openocd -d0 -c \"set __ELF_FILE__ ${F}\" -f ${S}"
 #x-terminal-emulator -e "make -C ${B}/../../../ ; ${CMD}; echo 'Press enter to close'; read"
-x-terminal-emulator -e "make ; ${CMD}; echo 'Press enter to close'; read"
+x-terminal-emulator -e "make ; cd ${B}; ${CMD}; echo 'Press enter to close'; read"

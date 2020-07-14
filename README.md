@@ -16,6 +16,7 @@ io handlers (see: https://sourceware.org/newlib/libc.html#Stubs)
  - `n`: Show all avaliables commands (no parameters)
  - `a [address]`: Show (without parameters) or set current address 
  - `x [b|h|w] [address] [count]`: Dump hex memory view. Optional parameters is listed here:
+   - `c` specifies char (8 bits) view if is printable or byte
    - `b` specifies byte (8 bits) view (**default**)
    - `h` specifies half word (16 bits) view
    - `w` specifies word (32 bits) view
