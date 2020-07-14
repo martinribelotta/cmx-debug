@@ -29,6 +29,7 @@ struct disassemble_info {
    void *stream;
    fprintf_ftype fprintf_func;
    void (*print_address_func)(uint32_t address, const struct disassemble_info *self);
+   uint8_t flags;
 };
 
 ptrdiff_t do_disassemble(uintptr_t addr);

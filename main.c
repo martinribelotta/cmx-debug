@@ -26,20 +26,6 @@
 
 #include "disassembler.h"
 
-#define ARRCOUNT(A) (sizeof(A)/sizeof(*(A)))
-
-typedef struct {
-   uint16_t mask;
-   uint16_t value;
-   void (*func)(uint16_t data);
-} decoder16_entry_t;
-
-typedef struct {
-   uint16_t mask1, value1;
-   uint32_t mask2, value2;
-   void (*func)(uint16_t inst1, uint16_t inst2);
-} decoder32_entry_t;
-
 static uintptr_t as_ptr = 0;
 
 static void promt(void)
@@ -89,7 +75,6 @@ static void assemble(const char *params)
 static void disassemble(const char *params)
 {
    ptrdiff_t count = 32;
-   puts("TODO");
    if (*params) {
       setgetptr(params);
       params = nextword(params);
@@ -201,7 +186,7 @@ static void repl(void)
 
 int main()
 {
-   printf("Hello world\n");
+   printf("Debugger console\n");
    while (1)
       repl();
    return 0;

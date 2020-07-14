@@ -54,13 +54,20 @@ void abort()
 #define UNDEFINED_INSTRUCTION "<und>"
 #define UNPREDICTABLE_INSTRUCTION "<unpr>"
 
+enum {
+   FLAGS_NONE = 0,
+   FLAGS_MEMORY_ACCESS = (1 << 0),
+};
+
 struct opcode32 {
-   unsigned long value;		/* If arch == 0 then value is a sentinel.  */
-   unsigned long mask;		/* Recognise insn if (op & mask) == value.  */
+   uint8_t flags;             /* Instruction flags */
+   unsigned long value;		   /* If arch == 0 then value is a sentinel.  */
+   unsigned long mask;		   /* Recognise insn if (op & mask) == value.  */
    const char *  assembler;	/* How to disassemble this insn.  */
 };
 
 struct opcode16 {
+   uint8_t flags;             /* Instruction flags */
    unsigned short value, mask;	/* Recognise insn if (op & mask) == value.  */
    const char *assembler;	/* How to disassemble this insn.  */
 };
@@ -96,121 +103,121 @@ static const struct opcode16 thumb_opcodes[] = {
    /* Thumb instructions.  */
 
    /* ARM V6K no-argument instructions.  */
-   { 0xbf00, 0xffff, "nop%c"},
-   { 0xbf10, 0xffff, "yield%c"},
-   { 0xbf20, 0xffff, "wfe%c"},
-   { 0xbf30, 0xffff, "wfi%c"},
-   { 0xbf40, 0xffff, "sev%c"},
-   { 0xbf00, 0xff0f, "nop%c\t{%4-7d}"},
+   { FLAGS_NONE, 0xbf00, 0xffff, "nop%c"},
+   { FLAGS_NONE, 0xbf10, 0xffff, "yield%c"},
+   { FLAGS_NONE, 0xbf20, 0xffff, "wfe%c"},
+   { FLAGS_NONE, 0xbf30, 0xffff, "wfi%c"},
+   { FLAGS_NONE, 0xbf40, 0xffff, "sev%c"},
+   { FLAGS_NONE, 0xbf00, 0xff0f, "nop%c\t{%4-7d}"},
 
    /* ARM V6T2 instructions.  */
-   { 0xb900, 0xfd00, "cbnz\t%0-2r, %b%X"},
-   { 0xb100, 0xfd00, "cbz\t%0-2r, %b%X"},
-   { 0xbf00, 0xff00, "it%I%X"},
+   { FLAGS_NONE, 0xb900, 0xfd00, "cbnz\t%0-2r, %b%X"},
+   { FLAGS_NONE, 0xb100, 0xfd00, "cbz\t%0-2r, %b%X"},
+   { FLAGS_NONE, 0xbf00, 0xff00, "it%I%X"},
 
    /* ARM V6.  */
-   { 0xb660, 0xfff8, "cpsie\t%2'a%1'i%0'f%X"},
-   { 0xb670, 0xfff8, "cpsid\t%2'a%1'i%0'f%X"},
-   { 0x4600, 0xffc0, "mov%c\t%0-2r, %3-5r"},
-   { 0xba00, 0xffc0, "rev%c\t%0-2r, %3-5r"},
-   { 0xba40, 0xffc0, "rev16%c\t%0-2r, %3-5r"},
-   { 0xbac0, 0xffc0, "revsh%c\t%0-2r, %3-5r"},
-   { 0xb650, 0xfff7, "setend\t%3?ble%X"},
-   { 0xb200, 0xffc0, "sxth%c\t%0-2r, %3-5r"},
-   { 0xb240, 0xffc0, "sxtb%c\t%0-2r, %3-5r"},
-   { 0xb280, 0xffc0, "uxth%c\t%0-2r, %3-5r"},
-   { 0xb2c0, 0xffc0, "uxtb%c\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0xb660, 0xfff8, "cpsie\t%2'a%1'i%0'f%X"},
+   { FLAGS_NONE, 0xb670, 0xfff8, "cpsid\t%2'a%1'i%0'f%X"},
+   { FLAGS_NONE, 0x4600, 0xffc0, "mov%c\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0xba00, 0xffc0, "rev%c\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0xba40, 0xffc0, "rev16%c\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0xbac0, 0xffc0, "revsh%c\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0xb650, 0xfff7, "setend\t%3?ble%X"},
+   { FLAGS_NONE, 0xb200, 0xffc0, "sxth%c\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0xb240, 0xffc0, "sxtb%c\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0xb280, 0xffc0, "uxth%c\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0xb2c0, 0xffc0, "uxtb%c\t%0-2r, %3-5r"},
 
    /* ARM V5 ISA extends Thumb.  */
-   { 0xbe00, 0xff00, "bkpt\t%0-7x"}, /* Is always unconditional.  */
+   { FLAGS_NONE, 0xbe00, 0xff00, "bkpt\t%0-7x"}, /* Is always unconditional.  */
    /* This is BLX(2).  BLX(1) is a 32-bit instruction.  */
-   { 0x4780, 0xff87, "blx%c\t%3-6r%x"},	/* note: 4 bit register number.  */
+   { FLAGS_NONE, 0x4780, 0xff87, "blx%c\t%3-6r%x"},	/* note: 4 bit register number.  */
    /* ARM V4T ISA (Thumb v1).  */
-   { 0x46C0, 0xFFFF, "nop%c\t\t\t; (mov r8, r8)"},
+   { FLAGS_NONE, 0x46C0, 0xFFFF, "nop%c\t\t\t; (mov r8, r8)"},
    /* Format 4.  */
-   { 0x4000, 0xFFC0, "and%C\t%0-2r, %3-5r"},
-   { 0x4040, 0xFFC0, "eor%C\t%0-2r, %3-5r"},
-   { 0x4080, 0xFFC0, "lsl%C\t%0-2r, %3-5r"},
-   { 0x40C0, 0xFFC0, "lsr%C\t%0-2r, %3-5r"},
-   { 0x4100, 0xFFC0, "asr%C\t%0-2r, %3-5r"},
-   { 0x4140, 0xFFC0, "adc%C\t%0-2r, %3-5r"},
-   { 0x4180, 0xFFC0, "sbc%C\t%0-2r, %3-5r"},
-   { 0x41C0, 0xFFC0, "ror%C\t%0-2r, %3-5r"},
-   { 0x4200, 0xFFC0, "tst%c\t%0-2r, %3-5r"},
-   { 0x4240, 0xFFC0, "neg%C\t%0-2r, %3-5r"},
-   { 0x4280, 0xFFC0, "cmp%c\t%0-2r, %3-5r"},
-   { 0x42C0, 0xFFC0, "cmn%c\t%0-2r, %3-5r"},
-   { 0x4300, 0xFFC0, "orr%C\t%0-2r, %3-5r"},
-   { 0x4340, 0xFFC0, "mul%C\t%0-2r, %3-5r"},
-   { 0x4380, 0xFFC0, "bic%C\t%0-2r, %3-5r"},
-   { 0x43C0, 0xFFC0, "mvn%C\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x4000, 0xFFC0, "and%C\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x4040, 0xFFC0, "eor%C\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x4080, 0xFFC0, "lsl%C\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x40C0, 0xFFC0, "lsr%C\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x4100, 0xFFC0, "asr%C\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x4140, 0xFFC0, "adc%C\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x4180, 0xFFC0, "sbc%C\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x41C0, 0xFFC0, "ror%C\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x4200, 0xFFC0, "tst%c\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x4240, 0xFFC0, "neg%C\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x4280, 0xFFC0, "cmp%c\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x42C0, 0xFFC0, "cmn%c\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x4300, 0xFFC0, "orr%C\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x4340, 0xFFC0, "mul%C\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x4380, 0xFFC0, "bic%C\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x43C0, 0xFFC0, "mvn%C\t%0-2r, %3-5r"},
    /* format 13 */
-   { 0xB000, 0xFF80, "add%c\tsp, #%0-6W"},
-   { 0xB080, 0xFF80, "sub%c\tsp, #%0-6W"},
+   { FLAGS_NONE, 0xB000, 0xFF80, "add%c\tsp, #%0-6W"},
+   { FLAGS_NONE, 0xB080, 0xFF80, "sub%c\tsp, #%0-6W"},
    /* format 5 */
-   { 0x4700, 0xFF80, "bx%c\t%S%x"},
-   { 0x4400, 0xFF00, "add%c\t%D, %S"},
-   { 0x4500, 0xFF00, "cmp%c\t%D, %S"},
-   { 0x4600, 0xFF00, "mov%c\t%D, %S"},
+   { FLAGS_NONE, 0x4700, 0xFF80, "bx%c\t%S%x"},
+   { FLAGS_NONE, 0x4400, 0xFF00, "add%c\t%D, %S"},
+   { FLAGS_NONE, 0x4500, 0xFF00, "cmp%c\t%D, %S"},
+   { FLAGS_NONE, 0x4600, 0xFF00, "mov%c\t%D, %S"},
    /* format 14 */
-   { 0xB400, 0xFE00, "push%c\t%N"},
-   { 0xBC00, 0xFE00, "pop%c\t%O"},
+   { FLAGS_NONE, 0xB400, 0xFE00, "push%c\t%N"},
+   { FLAGS_NONE, 0xBC00, 0xFE00, "pop%c\t%O"},
    /* format 2 */
-   { 0x1800, 0xFE00, "add%C\t%0-2r, %3-5r, %6-8r"},
-   { 0x1A00, 0xFE00, "sub%C\t%0-2r, %3-5r, %6-8r"},
-   { 0x1C00, 0xFE00, "add%C\t%0-2r, %3-5r, #%6-8d"},
-   { 0x1E00, 0xFE00, "sub%C\t%0-2r, %3-5r, #%6-8d"},
+   { FLAGS_NONE, 0x1800, 0xFE00, "add%C\t%0-2r, %3-5r, %6-8r"},
+   { FLAGS_NONE, 0x1A00, 0xFE00, "sub%C\t%0-2r, %3-5r, %6-8r"},
+   { FLAGS_NONE, 0x1C00, 0xFE00, "add%C\t%0-2r, %3-5r, #%6-8d"},
+   { FLAGS_NONE, 0x1E00, 0xFE00, "sub%C\t%0-2r, %3-5r, #%6-8d"},
    /* format 8 */
-   { 0x5200, 0xFE00, "strh%c\t%0-2r, [%3-5r, %6-8r]"},
-   { 0x5A00, 0xFE00, "ldrh%c\t%0-2r, [%3-5r, %6-8r]"},
-   { 0x5600, 0xF600, "ldrs%11?hb%c\t%0-2r, [%3-5r, %6-8r]"},
+   { FLAGS_NONE, 0x5200, 0xFE00, "strh%c\t%0-2r, [%3-5r, %6-8r]"},
+   { FLAGS_NONE, 0x5A00, 0xFE00, "ldrh%c\t%0-2r, [%3-5r, %6-8r]"},
+   { FLAGS_NONE, 0x5600, 0xF600, "ldrs%11?hb%c\t%0-2r, [%3-5r, %6-8r]"},
    /* format 7 */
-   { 0x5000, 0xFA00, "str%10'b%c\t%0-2r, [%3-5r, %6-8r]"},
-   { 0x5800, 0xFA00, "ldr%10'b%c\t%0-2r, [%3-5r, %6-8r]"},
+   { FLAGS_NONE, 0x5000, 0xFA00, "str%10'b%c\t%0-2r, [%3-5r, %6-8r]"},
+   { FLAGS_NONE, 0x5800, 0xFA00, "ldr%10'b%c\t%0-2r, [%3-5r, %6-8r]"},
    /* format 1 */
-   { 0x0000, 0xFFC0, "mov%C\t%0-2r, %3-5r"},
-   { 0x0000, 0xF800, "lsl%C\t%0-2r, %3-5r, #%6-10d"},
-   { 0x0800, 0xF800, "lsr%C\t%0-2r, %3-5r, %s"},
-   { 0x1000, 0xF800, "asr%C\t%0-2r, %3-5r, %s"},
+   { FLAGS_NONE, 0x0000, 0xFFC0, "mov%C\t%0-2r, %3-5r"},
+   { FLAGS_NONE, 0x0000, 0xF800, "lsl%C\t%0-2r, %3-5r, #%6-10d"},
+   { FLAGS_NONE, 0x0800, 0xF800, "lsr%C\t%0-2r, %3-5r, %s"},
+   { FLAGS_NONE, 0x1000, 0xF800, "asr%C\t%0-2r, %3-5r, %s"},
    /* format 3 */
-   { 0x2000, 0xF800, "mov%C\t%8-10r, #%0-7d"},
-   { 0x2800, 0xF800, "cmp%c\t%8-10r, #%0-7d"},
-   { 0x3000, 0xF800, "add%C\t%8-10r, #%0-7d"},
-   { 0x3800, 0xF800, "sub%C\t%8-10r, #%0-7d"},
+   { FLAGS_NONE, 0x2000, 0xF800, "mov%C\t%8-10r, #%0-7d"},
+   { FLAGS_NONE, 0x2800, 0xF800, "cmp%c\t%8-10r, #%0-7d"},
+   { FLAGS_NONE, 0x3000, 0xF800, "add%C\t%8-10r, #%0-7d"},
+   { FLAGS_NONE, 0x3800, 0xF800, "sub%C\t%8-10r, #%0-7d"},
    /* format 6 */
-   { 0x4800, 0xF800, "ldr%c\t%8-10r, [pc, #%0-7W]\t; (%0-7a)"},  /* TODO: Disassemble PC relative "LDR rD,=<symbolic>" */
+   { FLAGS_MEMORY_ACCESS, 0x4800, 0xF800, "ldr%c\t%8-10r, [pc, #%0-7W]\t; (%0-7a)"},  /* TODO: Disassemble PC relative "LDR rD,=<symbolic>" */
    /* format 9 */
-   { 0x6000, 0xF800, "str%c\t%0-2r, [%3-5r, #%6-10W]"},
-   { 0x6800, 0xF800, "ldr%c\t%0-2r, [%3-5r, #%6-10W]"},
-   { 0x7000, 0xF800, "strb%c\t%0-2r, [%3-5r, #%6-10d]"},
-   { 0x7800, 0xF800, "ldrb%c\t%0-2r, [%3-5r, #%6-10d]"},
+   { FLAGS_MEMORY_ACCESS, 0x6000, 0xF800, "str%c\t%0-2r, [%3-5r, #%6-10W]"},
+   { FLAGS_MEMORY_ACCESS, 0x6800, 0xF800, "ldr%c\t%0-2r, [%3-5r, #%6-10W]"},
+   { FLAGS_MEMORY_ACCESS, 0x7000, 0xF800, "strb%c\t%0-2r, [%3-5r, #%6-10d]"},
+   { FLAGS_MEMORY_ACCESS, 0x7800, 0xF800, "ldrb%c\t%0-2r, [%3-5r, #%6-10d]"},
    /* format 10 */
-   { 0x8000, 0xF800, "strh%c\t%0-2r, [%3-5r, #%6-10H]"},
-   { 0x8800, 0xF800, "ldrh%c\t%0-2r, [%3-5r, #%6-10H]"},
+   { FLAGS_MEMORY_ACCESS, 0x8000, 0xF800, "strh%c\t%0-2r, [%3-5r, #%6-10H]"},
+   { FLAGS_MEMORY_ACCESS, 0x8800, 0xF800, "ldrh%c\t%0-2r, [%3-5r, #%6-10H]"},
    /* format 11 */
-   { 0x9000, 0xF800, "str%c\t%8-10r, [sp, #%0-7W]"},
-   { 0x9800, 0xF800, "ldr%c\t%8-10r, [sp, #%0-7W]"},
+   { FLAGS_MEMORY_ACCESS, 0x9000, 0xF800, "str%c\t%8-10r, [sp, #%0-7W]"},
+   { FLAGS_MEMORY_ACCESS, 0x9800, 0xF800, "ldr%c\t%8-10r, [sp, #%0-7W]"},
    /* format 12 */
-   { 0xA000, 0xF800, "add%c\t%8-10r, pc, #%0-7W\t; (adr %8-10r, %0-7a)"},
-   { 0xA800, 0xF800, "add%c\t%8-10r, sp, #%0-7W"},
+   { FLAGS_MEMORY_ACCESS, 0xA000, 0xF800, "add%c\t%8-10r, pc, #%0-7W\t; (adr %8-10r, %0-7a)"},
+   { FLAGS_MEMORY_ACCESS, 0xA800, 0xF800, "add%c\t%8-10r, sp, #%0-7W"},
    /* format 15 */
-   { 0xC000, 0xF800, "stmia%c\t%8-10r!, %M"},
-   { 0xC800, 0xF800, "ldmia%c\t%8-10r%W, %M"},
+   { FLAGS_NONE, 0xC000, 0xF800, "stmia%c\t%8-10r!, %M"},
+   { FLAGS_NONE, 0xC800, 0xF800, "ldmia%c\t%8-10r%W, %M"},
    /* format 17 */
-   { 0xDF00, 0xFF00, "svc%c\t%0-7d"},
+   { FLAGS_NONE, 0xDF00, 0xFF00, "svc%c\t%0-7d"},
    /* format 16 */
-   { 0xDE00, 0xFF00, "udf%c\t#%0-7d"},
-   { 0xDE00, 0xFE00, UNDEFINED_INSTRUCTION},
-   { 0xD000, 0xF000, "b%8-11c.n\t%0-7B%X"},
+   { FLAGS_NONE, 0xDE00, 0xFF00, "udf%c\t#%0-7d"},
+   { FLAGS_NONE, 0xDE00, 0xFE00, UNDEFINED_INSTRUCTION},
+   { FLAGS_NONE, 0xD000, 0xF000, "b%8-11c.n\t%0-7B%X"},
    /* format 18 */
-   { 0xE000, 0xF800, "b%c.n\t%0-10B%x"},
+   { FLAGS_NONE, 0xE000, 0xF800, "b%c.n\t%0-10B%x"},
 
    /* The E800 .. FFFF range is unconditionally redirected to the
       32-bit table, because even in pre-V6T2 ISAs, BL and BLX(1) pairs
       are processed via that table.  Thus, we can never encounter a
       bare "second half of BL/BLX(1)" instruction here.  */
-   { 0x0000, 0x0000, UNDEFINED_INSTRUCTION},
-   { 0, 0, 0}
+   { FLAGS_NONE, 0x0000, 0x0000, UNDEFINED_INSTRUCTION},
+   { FLAGS_NONE, 0, 0, 0}
 };
 
 /* Thumb32 opcodes use the same table structure as the ARM opcodes.
@@ -266,199 +273,199 @@ static const struct opcode16 thumb_opcodes[] = {
    makes heavy use of special-case bit patterns.  */
 static const struct opcode32 thumb32_opcodes[] = {
    /* Instructions defined in the basic V6T2 set.  */
-   { 0xf3af8000, 0xffffffff, "nop%c.w"},
-   { 0xf3af8001, 0xffffffff, "yield%c.w"},
-   { 0xf3af8002, 0xffffffff, "wfe%c.w"},
-   { 0xf3af8003, 0xffffffff, "wfi%c.w"},
-   { 0xf3af8004, 0xffffffff, "sev%c.w"},
-   { 0xf3af8000, 0xffffff00, "nop%c.w\t{%0-7d}"},
-   { 0xf7f0a000, 0xfff0f000, "udf%c.w\t%H"},
+   { FLAGS_NONE, 0xf3af8000, 0xffffffff, "nop%c.w"},
+   { FLAGS_NONE, 0xf3af8001, 0xffffffff, "yield%c.w"},
+   { FLAGS_NONE, 0xf3af8002, 0xffffffff, "wfe%c.w"},
+   { FLAGS_NONE, 0xf3af8003, 0xffffffff, "wfi%c.w"},
+   { FLAGS_NONE, 0xf3af8004, 0xffffffff, "sev%c.w"},
+   { FLAGS_NONE, 0xf3af8000, 0xffffff00, "nop%c.w\t{%0-7d}"},
+   { FLAGS_NONE, 0xf7f0a000, 0xfff0f000, "udf%c.w\t%H"},
 
-   { 0xf3bf8f2f, 0xffffffff, "clrex%c"},
-   { 0xf3af8400, 0xffffff1f, "cpsie.w\t%7'a%6'i%5'f%X"},
-   { 0xf3af8600, 0xffffff1f, "cpsid.w\t%7'a%6'i%5'f%X"},
-   { 0xf3c08f00, 0xfff0ffff, "bxj%c\t%16-19r%x"},
-   { 0xe810c000, 0xffd0ffff, "rfedb%c\t%16-19r%21'!"},
-   { 0xe990c000, 0xffd0ffff, "rfeia%c\t%16-19r%21'!"},
-   { 0xf3e08000, 0xffe0f000, "mrs%c\t%8-11r, %D"},
-   { 0xf3af8100, 0xffffffe0, "cps\t#%0-4d%X"},
-   { 0xe8d0f000, 0xfff0fff0, "tbb%c\t[%16-19r, %0-3r]%x"},
-   { 0xe8d0f010, 0xfff0fff0, "tbh%c\t[%16-19r, %0-3r, lsl #1]%x"},
-   { 0xf3af8500, 0xffffff00, "cpsie\t%7'a%6'i%5'f, #%0-4d%X"},
-   { 0xf3af8700, 0xffffff00, "cpsid\t%7'a%6'i%5'f, #%0-4d%X"},
-   { 0xf3de8f00, 0xffffff00, "subs%c\tpc, lr, #%0-7d"},
-   { 0xf3808000, 0xffe0f000, "msr%c\t%C, %16-19r"},
-   { 0xe8500f00, 0xfff00fff, "ldrex%c\t%12-15r, [%16-19r]"},
-   { 0xe8d00f4f, 0xfff00fef, "ldrex%4?hb%c\t%12-15r, [%16-19r]"},
-   { 0xe800c000, 0xffd0ffe0, "srsdb%c\t%16-19r%21'!, #%0-4d"},
-   { 0xe980c000, 0xffd0ffe0, "srsia%c\t%16-19r%21'!, #%0-4d"},
-   { 0xfa0ff080, 0xfffff0c0, "sxth%c.w\t%8-11r, %0-3r%R"},
-   { 0xfa1ff080, 0xfffff0c0, "uxth%c.w\t%8-11r, %0-3r%R"},
-   { 0xfa2ff080, 0xfffff0c0, "sxtb16%c\t%8-11r, %0-3r%R"},
-   { 0xfa3ff080, 0xfffff0c0, "uxtb16%c\t%8-11r, %0-3r%R"},
-   { 0xfa4ff080, 0xfffff0c0, "sxtb%c.w\t%8-11r, %0-3r%R"},
-   { 0xfa5ff080, 0xfffff0c0, "uxtb%c.w\t%8-11r, %0-3r%R"},
-   { 0xe8400000, 0xfff000ff, "strex%c\t%8-11r, %12-15r, [%16-19r]"},
-   { 0xe8d0007f, 0xfff000ff, "ldrexd%c\t%12-15r, %8-11r, [%16-19r]"},
-   { 0xfa80f000, 0xfff0f0f0, "sadd8%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfa80f010, 0xfff0f0f0, "qadd8%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfa80f020, 0xfff0f0f0, "shadd8%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfa80f040, 0xfff0f0f0, "uadd8%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfa80f050, 0xfff0f0f0, "uqadd8%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfa80f060, 0xfff0f0f0, "uhadd8%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfa80f080, 0xfff0f0f0, "qadd%c\t%8-11r, %0-3r, %16-19r"},
-   { 0xfa80f090, 0xfff0f0f0, "qdadd%c\t%8-11r, %0-3r, %16-19r"},
-   { 0xfa80f0a0, 0xfff0f0f0, "qsub%c\t%8-11r, %0-3r, %16-19r"},
-   { 0xfa80f0b0, 0xfff0f0f0, "qdsub%c\t%8-11r, %0-3r, %16-19r"},
-   { 0xfa90f000, 0xfff0f0f0, "sadd16%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfa90f010, 0xfff0f0f0, "qadd16%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfa90f020, 0xfff0f0f0, "shadd16%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfa90f040, 0xfff0f0f0, "uadd16%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfa90f050, 0xfff0f0f0, "uqadd16%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfa90f060, 0xfff0f0f0, "uhadd16%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfa90f080, 0xfff0f0f0, "rev%c.w\t%8-11r, %16-19r"},
-   { 0xfa90f090, 0xfff0f0f0, "rev16%c.w\t%8-11r, %16-19r"},
-   { 0xfa90f0a0, 0xfff0f0f0, "rbit%c\t%8-11r, %16-19r"},
-   { 0xfa90f0b0, 0xfff0f0f0, "revsh%c.w\t%8-11r, %16-19r"},
-   { 0xfaa0f000, 0xfff0f0f0, "sasx%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfaa0f010, 0xfff0f0f0, "qasx%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfaa0f020, 0xfff0f0f0, "shasx%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfaa0f040, 0xfff0f0f0, "uasx%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfaa0f050, 0xfff0f0f0, "uqasx%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfaa0f060, 0xfff0f0f0, "uhasx%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfaa0f080, 0xfff0f0f0, "sel%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfab0f080, 0xfff0f0f0, "clz%c\t%8-11r, %16-19r"},
-   { 0xfac0f000, 0xfff0f0f0, "ssub8%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfac0f010, 0xfff0f0f0, "qsub8%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfac0f020, 0xfff0f0f0, "shsub8%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfac0f040, 0xfff0f0f0, "usub8%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfac0f050, 0xfff0f0f0, "uqsub8%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfac0f060, 0xfff0f0f0, "uhsub8%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfad0f000, 0xfff0f0f0, "ssub16%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfad0f010, 0xfff0f0f0, "qsub16%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfad0f020, 0xfff0f0f0, "shsub16%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfad0f040, 0xfff0f0f0, "usub16%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfad0f050, 0xfff0f0f0, "uqsub16%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfad0f060, 0xfff0f0f0, "uhsub16%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfae0f000, 0xfff0f0f0, "ssax%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfae0f010, 0xfff0f0f0, "qsax%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfae0f020, 0xfff0f0f0, "shsax%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfae0f040, 0xfff0f0f0, "usax%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfae0f050, 0xfff0f0f0, "uqsax%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfae0f060, 0xfff0f0f0, "uhsax%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfb00f000, 0xfff0f0f0, "mul%c.w\t%8-11r, %16-19r, %0-3r"},
-   { 0xfb70f000, 0xfff0f0f0, "usad8%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfa00f000, 0xffe0f0f0, "lsl%20's%c.w\t%8-11R, %16-19R, %0-3R"},
-   { 0xfa20f000, 0xffe0f0f0, "lsr%20's%c.w\t%8-11R, %16-19R, %0-3R"},
-   { 0xfa40f000, 0xffe0f0f0, "asr%20's%c.w\t%8-11R, %16-19R, %0-3R"},
-   { 0xfa60f000, 0xffe0f0f0, "ror%20's%c.w\t%8-11r, %16-19r, %0-3r"},
-   { 0xe8c00f40, 0xfff00fe0, "strex%4?hb%c\t%0-3r, %12-15r, [%16-19r]"},
-   { 0xf3200000, 0xfff0f0e0, "ssat16%c\t%8-11r, #%0-4d, %16-19r"},
-   { 0xf3a00000, 0xfff0f0e0, "usat16%c\t%8-11r, #%0-4d, %16-19r"},
-   { 0xfb20f000, 0xfff0f0e0, "smuad%4'x%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfb30f000, 0xfff0f0e0, "smulw%4?tb%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfb40f000, 0xfff0f0e0, "smusd%4'x%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfb50f000, 0xfff0f0e0, "smmul%4'r%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xfa00f080, 0xfff0f0c0, "sxtah%c\t%8-11r, %16-19r, %0-3r%R"},
-   { 0xfa10f080, 0xfff0f0c0, "uxtah%c\t%8-11r, %16-19r, %0-3r%R"},
-   { 0xfa20f080, 0xfff0f0c0, "sxtab16%c\t%8-11r, %16-19r, %0-3r%R"},
-   { 0xfa30f080, 0xfff0f0c0, "uxtab16%c\t%8-11r, %16-19r, %0-3r%R"},
-   { 0xfa40f080, 0xfff0f0c0, "sxtab%c\t%8-11r, %16-19r, %0-3r%R"},
-   { 0xfa50f080, 0xfff0f0c0, "uxtab%c\t%8-11r, %16-19r, %0-3r%R"},
-   { 0xfb10f000, 0xfff0f0c0, "smul%5?tb%4?tb%c\t%8-11r, %16-19r, %0-3r"},
-   { 0xf36f0000, 0xffff8020, "bfc%c\t%8-11r, %E"},
-   { 0xea100f00, 0xfff08f00, "tst%c.w\t%16-19r, %S"},
-   { 0xea900f00, 0xfff08f00, "teq%c\t%16-19r, %S"},
-   { 0xeb100f00, 0xfff08f00, "cmn%c.w\t%16-19r, %S"},
-   { 0xebb00f00, 0xfff08f00, "cmp%c.w\t%16-19r, %S"},
-   { 0xf0100f00, 0xfbf08f00, "tst%c.w\t%16-19r, %M"},
-   { 0xf0900f00, 0xfbf08f00, "teq%c\t%16-19r, %M"},
-   { 0xf1100f00, 0xfbf08f00, "cmn%c.w\t%16-19r, %M"},
-   { 0xf1b00f00, 0xfbf08f00, "cmp%c.w\t%16-19r, %M"},
-   { 0xea4f0000, 0xffef8000, "mov%20's%c.w\t%8-11r, %S"},
-   { 0xea6f0000, 0xffef8000, "mvn%20's%c.w\t%8-11r, %S"},
-   { 0xe8c00070, 0xfff000f0, "strexd%c\t%0-3r, %12-15r, %8-11r, [%16-19r]"},
-   { 0xfb000000, 0xfff000f0, "mla%c\t%8-11r, %16-19r, %0-3r, %12-15r"},
-   { 0xfb000010, 0xfff000f0, "mls%c\t%8-11r, %16-19r, %0-3r, %12-15r"},
-   { 0xfb700000, 0xfff000f0, "usada8%c\t%8-11R, %16-19R, %0-3R, %12-15R"},
-   { 0xfb800000, 0xfff000f0, "smull%c\t%12-15R, %8-11R, %16-19R, %0-3R"},
-   { 0xfba00000, 0xfff000f0, "umull%c\t%12-15R, %8-11R, %16-19R, %0-3R"},
-   { 0xfbc00000, 0xfff000f0, "smlal%c\t%12-15R, %8-11R, %16-19R, %0-3R"},
-   { 0xfbe00000, 0xfff000f0, "umlal%c\t%12-15R, %8-11R, %16-19R, %0-3R"},
-   { 0xfbe00060, 0xfff000f0, "umaal%c\t%12-15R, %8-11R, %16-19R, %0-3R"},
-   { 0xe8500f00, 0xfff00f00, "ldrex%c\t%12-15r, [%16-19r, #%0-7W]"},
-   { 0xf04f0000, 0xfbef8000, "mov%20's%c.w\t%8-11r, %M"},
-   { 0xf06f0000, 0xfbef8000, "mvn%20's%c.w\t%8-11r, %M"},
-   { 0xf810f000, 0xff70f000, "pld%c\t%a"},
-   { 0xfb200000, 0xfff000e0, "smlad%4'x%c\t%8-11R, %16-19R, %0-3R, %12-15R"},
-   { 0xfb300000, 0xfff000e0, "smlaw%4?tb%c\t%8-11R, %16-19R, %0-3R, %12-15R"},
-   { 0xfb400000, 0xfff000e0, "smlsd%4'x%c\t%8-11R, %16-19R, %0-3R, %12-15R"},
-   { 0xfb500000, 0xfff000e0, "smmla%4'r%c\t%8-11R, %16-19R, %0-3R, %12-15R"},
-   { 0xfb600000, 0xfff000e0, "smmls%4'r%c\t%8-11R, %16-19R, %0-3R, %12-15R"},
-   { 0xfbc000c0, 0xfff000e0, "smlald%4'x%c\t%12-15R, %8-11R, %16-19R, %0-3R"},
-   { 0xfbd000c0, 0xfff000e0, "smlsld%4'x%c\t%12-15R, %8-11R, %16-19R, %0-3R"},
-   { 0xeac00000, 0xfff08030, "pkhbt%c\t%8-11r, %16-19r, %S"},
-   { 0xeac00020, 0xfff08030, "pkhtb%c\t%8-11r, %16-19r, %S"},
-   { 0xf3400000, 0xfff08020, "sbfx%c\t%8-11r, %16-19r, %F"},
-   { 0xf3c00000, 0xfff08020, "ubfx%c\t%8-11r, %16-19r, %F"},
-   { 0xf8000e00, 0xff900f00, "str%wt%c\t%12-15r, %a"},
-   { 0xfb100000, 0xfff000c0, "smla%5?tb%4?tb%c\t%8-11r, %16-19r, %0-3r, %12-15r"},
-   { 0xfbc00080, 0xfff000c0, "smlal%5?tb%4?tb%c\t%12-15r, %8-11r, %16-19r, %0-3r"},
-   { 0xf3600000, 0xfff08020, "bfi%c\t%8-11r, %16-19r, %E"},
-   { 0xf8100e00, 0xfe900f00, "ldr%wt%c\t%12-15r, %a"},
-   { 0xf3000000, 0xffd08020, "ssat%c\t%8-11r, #%0-4d, %16-19r%s"},
-   { 0xf3800000, 0xffd08020, "usat%c\t%8-11r, #%0-4d, %16-19r%s"},
-   { 0xf2000000, 0xfbf08000, "addw%c\t%8-11r, %16-19r, %I"},
-   { 0xf2400000, 0xfbf08000, "movw%c\t%8-11r, %J"},
-   { 0xf2a00000, 0xfbf08000, "subw%c\t%8-11r, %16-19r, %I"},
-   { 0xf2c00000, 0xfbf08000, "movt%c\t%8-11r, %J"},
-   { 0xea000000, 0xffe08000, "and%20's%c.w\t%8-11r, %16-19r, %S"},
-   { 0xea200000, 0xffe08000, "bic%20's%c.w\t%8-11r, %16-19r, %S"},
-   { 0xea400000, 0xffe08000, "orr%20's%c.w\t%8-11r, %16-19r, %S"},
-   { 0xea600000, 0xffe08000, "orn%20's%c\t%8-11r, %16-19r, %S"},
-   { 0xea800000, 0xffe08000, "eor%20's%c.w\t%8-11r, %16-19r, %S"},
-   { 0xeb000000, 0xffe08000, "add%20's%c.w\t%8-11r, %16-19r, %S"},
-   { 0xeb400000, 0xffe08000, "adc%20's%c.w\t%8-11r, %16-19r, %S"},
-   { 0xeb600000, 0xffe08000, "sbc%20's%c.w\t%8-11r, %16-19r, %S"},
-   { 0xeba00000, 0xffe08000, "sub%20's%c.w\t%8-11r, %16-19r, %S"},
-   { 0xebc00000, 0xffe08000, "rsb%20's%c\t%8-11r, %16-19r, %S"},
-   { 0xe8400000, 0xfff00000, "strex%c\t%8-11r, %12-15r, [%16-19r, #%0-7W]"},
-   { 0xf0000000, 0xfbe08000, "and%20's%c.w\t%8-11r, %16-19r, %M"},
-   { 0xf0200000, 0xfbe08000, "bic%20's%c.w\t%8-11r, %16-19r, %M"},
-   { 0xf0400000, 0xfbe08000, "orr%20's%c.w\t%8-11r, %16-19r, %M"},
-   { 0xf0600000, 0xfbe08000, "orn%20's%c\t%8-11r, %16-19r, %M"},
-   { 0xf0800000, 0xfbe08000, "eor%20's%c.w\t%8-11r, %16-19r, %M"},
-   { 0xf1000000, 0xfbe08000, "add%20's%c.w\t%8-11r, %16-19r, %M"},
-   { 0xf1400000, 0xfbe08000, "adc%20's%c.w\t%8-11r, %16-19r, %M"},
-   { 0xf1600000, 0xfbe08000, "sbc%20's%c.w\t%8-11r, %16-19r, %M"},
-   { 0xf1a00000, 0xfbe08000, "sub%20's%c.w\t%8-11r, %16-19r, %M"},
-   { 0xf1c00000, 0xfbe08000, "rsb%20's%c\t%8-11r, %16-19r, %M"},
-   { 0xe8800000, 0xffd00000, "stmia%c.w\t%16-19r%21'!, %m"},
-   { 0xe8900000, 0xffd00000, "ldmia%c.w\t%16-19r%21'!, %m"},
-   { 0xe9000000, 0xffd00000, "stmdb%c\t%16-19r%21'!, %m"},
-   { 0xe9100000, 0xffd00000, "ldmdb%c\t%16-19r%21'!, %m"},
-   { 0xe9c00000, 0xffd000ff, "strd%c\t%12-15r, %8-11r, [%16-19r]"},
-   { 0xe9d00000, 0xffd000ff, "ldrd%c\t%12-15r, %8-11r, [%16-19r]"},
-   { 0xe9400000, 0xff500000, "strd%c\t%12-15r, %8-11r, [%16-19r, #%23`-%0-7W]%21'!%L"},
-   { 0xe9500000, 0xff500000, "ldrd%c\t%12-15r, %8-11r, [%16-19r, #%23`-%0-7W]%21'!%L"},
-   { 0xe8600000, 0xff700000, "strd%c\t%12-15r, %8-11r, [%16-19r], #%23`-%0-7W%L"},
-   { 0xe8700000, 0xff700000, "ldrd%c\t%12-15r, %8-11r, [%16-19r], #%23`-%0-7W%L"},
-   { 0xf8000000, 0xff100000, "str%w%c.w\t%12-15r, %a"},
-   { 0xf8100000, 0xfe100000, "ldr%w%c.w\t%12-15r, %a"},
+   { FLAGS_NONE, 0xf3bf8f2f, 0xffffffff, "clrex%c"},
+   { FLAGS_NONE, 0xf3af8400, 0xffffff1f, "cpsie.w\t%7'a%6'i%5'f%X"},
+   { FLAGS_NONE, 0xf3af8600, 0xffffff1f, "cpsid.w\t%7'a%6'i%5'f%X"},
+   { FLAGS_NONE, 0xf3c08f00, 0xfff0ffff, "bxj%c\t%16-19r%x"},
+   { FLAGS_NONE, 0xe810c000, 0xffd0ffff, "rfedb%c\t%16-19r%21'!"},
+   { FLAGS_NONE, 0xe990c000, 0xffd0ffff, "rfeia%c\t%16-19r%21'!"},
+   { FLAGS_NONE, 0xf3e08000, 0xffe0f000, "mrs%c\t%8-11r, %D"},
+   { FLAGS_NONE, 0xf3af8100, 0xffffffe0, "cps\t#%0-4d%X"},
+   { FLAGS_NONE, 0xe8d0f000, 0xfff0fff0, "tbb%c\t[%16-19r, %0-3r]%x"},
+   { FLAGS_NONE, 0xe8d0f010, 0xfff0fff0, "tbh%c\t[%16-19r, %0-3r, lsl #1]%x"},
+   { FLAGS_NONE, 0xf3af8500, 0xffffff00, "cpsie\t%7'a%6'i%5'f, #%0-4d%X"},
+   { FLAGS_NONE, 0xf3af8700, 0xffffff00, "cpsid\t%7'a%6'i%5'f, #%0-4d%X"},
+   { FLAGS_NONE, 0xf3de8f00, 0xffffff00, "subs%c\tpc, lr, #%0-7d"},
+   { FLAGS_NONE, 0xf3808000, 0xffe0f000, "msr%c\t%C, %16-19r"},
+   { FLAGS_MEMORY_ACCESS, 0xe8500f00, 0xfff00fff, "ldrex%c\t%12-15r, [%16-19r]"},
+   { FLAGS_MEMORY_ACCESS, 0xe8d00f4f, 0xfff00fef, "ldrex%4?hb%c\t%12-15r, [%16-19r]"},
+   { FLAGS_NONE, 0xe800c000, 0xffd0ffe0, "srsdb%c\t%16-19r%21'!, #%0-4d"},
+   { FLAGS_NONE, 0xe980c000, 0xffd0ffe0, "srsia%c\t%16-19r%21'!, #%0-4d"},
+   { FLAGS_NONE, 0xfa0ff080, 0xfffff0c0, "sxth%c.w\t%8-11r, %0-3r%R"},
+   { FLAGS_NONE, 0xfa1ff080, 0xfffff0c0, "uxth%c.w\t%8-11r, %0-3r%R"},
+   { FLAGS_NONE, 0xfa2ff080, 0xfffff0c0, "sxtb16%c\t%8-11r, %0-3r%R"},
+   { FLAGS_NONE, 0xfa3ff080, 0xfffff0c0, "uxtb16%c\t%8-11r, %0-3r%R"},
+   { FLAGS_NONE, 0xfa4ff080, 0xfffff0c0, "sxtb%c.w\t%8-11r, %0-3r%R"},
+   { FLAGS_NONE, 0xfa5ff080, 0xfffff0c0, "uxtb%c.w\t%8-11r, %0-3r%R"},
+   { FLAGS_MEMORY_ACCESS, 0xe8400000, 0xfff000ff, "strex%c\t%8-11r, %12-15r, [%16-19r]"},
+   { FLAGS_MEMORY_ACCESS, 0xe8d0007f, 0xfff000ff, "ldrexd%c\t%12-15r, %8-11r, [%16-19r]"},
+   { FLAGS_NONE, 0xfa80f000, 0xfff0f0f0, "sadd8%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfa80f010, 0xfff0f0f0, "qadd8%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfa80f020, 0xfff0f0f0, "shadd8%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfa80f040, 0xfff0f0f0, "uadd8%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfa80f050, 0xfff0f0f0, "uqadd8%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfa80f060, 0xfff0f0f0, "uhadd8%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfa80f080, 0xfff0f0f0, "qadd%c\t%8-11r, %0-3r, %16-19r"},
+   { FLAGS_NONE, 0xfa80f090, 0xfff0f0f0, "qdadd%c\t%8-11r, %0-3r, %16-19r"},
+   { FLAGS_NONE, 0xfa80f0a0, 0xfff0f0f0, "qsub%c\t%8-11r, %0-3r, %16-19r"},
+   { FLAGS_NONE, 0xfa80f0b0, 0xfff0f0f0, "qdsub%c\t%8-11r, %0-3r, %16-19r"},
+   { FLAGS_NONE, 0xfa90f000, 0xfff0f0f0, "sadd16%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfa90f010, 0xfff0f0f0, "qadd16%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfa90f020, 0xfff0f0f0, "shadd16%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfa90f040, 0xfff0f0f0, "uadd16%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfa90f050, 0xfff0f0f0, "uqadd16%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfa90f060, 0xfff0f0f0, "uhadd16%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfa90f080, 0xfff0f0f0, "rev%c.w\t%8-11r, %16-19r"},
+   { FLAGS_NONE, 0xfa90f090, 0xfff0f0f0, "rev16%c.w\t%8-11r, %16-19r"},
+   { FLAGS_NONE, 0xfa90f0a0, 0xfff0f0f0, "rbit%c\t%8-11r, %16-19r"},
+   { FLAGS_NONE, 0xfa90f0b0, 0xfff0f0f0, "revsh%c.w\t%8-11r, %16-19r"},
+   { FLAGS_NONE, 0xfaa0f000, 0xfff0f0f0, "sasx%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfaa0f010, 0xfff0f0f0, "qasx%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfaa0f020, 0xfff0f0f0, "shasx%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfaa0f040, 0xfff0f0f0, "uasx%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfaa0f050, 0xfff0f0f0, "uqasx%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfaa0f060, 0xfff0f0f0, "uhasx%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfaa0f080, 0xfff0f0f0, "sel%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfab0f080, 0xfff0f0f0, "clz%c\t%8-11r, %16-19r"},
+   { FLAGS_NONE, 0xfac0f000, 0xfff0f0f0, "ssub8%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfac0f010, 0xfff0f0f0, "qsub8%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfac0f020, 0xfff0f0f0, "shsub8%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfac0f040, 0xfff0f0f0, "usub8%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfac0f050, 0xfff0f0f0, "uqsub8%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfac0f060, 0xfff0f0f0, "uhsub8%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfad0f000, 0xfff0f0f0, "ssub16%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfad0f010, 0xfff0f0f0, "qsub16%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfad0f020, 0xfff0f0f0, "shsub16%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfad0f040, 0xfff0f0f0, "usub16%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfad0f050, 0xfff0f0f0, "uqsub16%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfad0f060, 0xfff0f0f0, "uhsub16%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfae0f000, 0xfff0f0f0, "ssax%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfae0f010, 0xfff0f0f0, "qsax%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfae0f020, 0xfff0f0f0, "shsax%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfae0f040, 0xfff0f0f0, "usax%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfae0f050, 0xfff0f0f0, "uqsax%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfae0f060, 0xfff0f0f0, "uhsax%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfb00f000, 0xfff0f0f0, "mul%c.w\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfb70f000, 0xfff0f0f0, "usad8%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfa00f000, 0xffe0f0f0, "lsl%20's%c.w\t%8-11R, %16-19R, %0-3R"},
+   { FLAGS_NONE, 0xfa20f000, 0xffe0f0f0, "lsr%20's%c.w\t%8-11R, %16-19R, %0-3R"},
+   { FLAGS_NONE, 0xfa40f000, 0xffe0f0f0, "asr%20's%c.w\t%8-11R, %16-19R, %0-3R"},
+   { FLAGS_NONE, 0xfa60f000, 0xffe0f0f0, "ror%20's%c.w\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xe8c00f40, 0xfff00fe0, "strex%4?hb%c\t%0-3r, %12-15r, [%16-19r]"},
+   { FLAGS_NONE, 0xf3200000, 0xfff0f0e0, "ssat16%c\t%8-11r, #%0-4d, %16-19r"},
+   { FLAGS_NONE, 0xf3a00000, 0xfff0f0e0, "usat16%c\t%8-11r, #%0-4d, %16-19r"},
+   { FLAGS_NONE, 0xfb20f000, 0xfff0f0e0, "smuad%4'x%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfb30f000, 0xfff0f0e0, "smulw%4?tb%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfb40f000, 0xfff0f0e0, "smusd%4'x%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfb50f000, 0xfff0f0e0, "smmul%4'r%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xfa00f080, 0xfff0f0c0, "sxtah%c\t%8-11r, %16-19r, %0-3r%R"},
+   { FLAGS_NONE, 0xfa10f080, 0xfff0f0c0, "uxtah%c\t%8-11r, %16-19r, %0-3r%R"},
+   { FLAGS_NONE, 0xfa20f080, 0xfff0f0c0, "sxtab16%c\t%8-11r, %16-19r, %0-3r%R"},
+   { FLAGS_NONE, 0xfa30f080, 0xfff0f0c0, "uxtab16%c\t%8-11r, %16-19r, %0-3r%R"},
+   { FLAGS_NONE, 0xfa40f080, 0xfff0f0c0, "sxtab%c\t%8-11r, %16-19r, %0-3r%R"},
+   { FLAGS_NONE, 0xfa50f080, 0xfff0f0c0, "uxtab%c\t%8-11r, %16-19r, %0-3r%R"},
+   { FLAGS_NONE, 0xfb10f000, 0xfff0f0c0, "smul%5?tb%4?tb%c\t%8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xf36f0000, 0xffff8020, "bfc%c\t%8-11r, %E"},
+   { FLAGS_NONE, 0xea100f00, 0xfff08f00, "tst%c.w\t%16-19r, %S"},
+   { FLAGS_NONE, 0xea900f00, 0xfff08f00, "teq%c\t%16-19r, %S"},
+   { FLAGS_NONE, 0xeb100f00, 0xfff08f00, "cmn%c.w\t%16-19r, %S"},
+   { FLAGS_NONE, 0xebb00f00, 0xfff08f00, "cmp%c.w\t%16-19r, %S"},
+   { FLAGS_NONE, 0xf0100f00, 0xfbf08f00, "tst%c.w\t%16-19r, %M"},
+   { FLAGS_NONE, 0xf0900f00, 0xfbf08f00, "teq%c\t%16-19r, %M"},
+   { FLAGS_NONE, 0xf1100f00, 0xfbf08f00, "cmn%c.w\t%16-19r, %M"},
+   { FLAGS_NONE, 0xf1b00f00, 0xfbf08f00, "cmp%c.w\t%16-19r, %M"},
+   { FLAGS_NONE, 0xea4f0000, 0xffef8000, "mov%20's%c.w\t%8-11r, %S"},
+   { FLAGS_NONE, 0xea6f0000, 0xffef8000, "mvn%20's%c.w\t%8-11r, %S"},
+   { FLAGS_MEMORY_ACCESS, 0xe8c00070, 0xfff000f0, "strexd%c\t%0-3r, %12-15r, %8-11r, [%16-19r]"},
+   { FLAGS_NONE, 0xfb000000, 0xfff000f0, "mla%c\t%8-11r, %16-19r, %0-3r, %12-15r"},
+   { FLAGS_NONE, 0xfb000010, 0xfff000f0, "mls%c\t%8-11r, %16-19r, %0-3r, %12-15r"},
+   { FLAGS_NONE, 0xfb700000, 0xfff000f0, "usada8%c\t%8-11R, %16-19R, %0-3R, %12-15R"},
+   { FLAGS_NONE, 0xfb800000, 0xfff000f0, "smull%c\t%12-15R, %8-11R, %16-19R, %0-3R"},
+   { FLAGS_NONE, 0xfba00000, 0xfff000f0, "umull%c\t%12-15R, %8-11R, %16-19R, %0-3R"},
+   { FLAGS_NONE, 0xfbc00000, 0xfff000f0, "smlal%c\t%12-15R, %8-11R, %16-19R, %0-3R"},
+   { FLAGS_NONE, 0xfbe00000, 0xfff000f0, "umlal%c\t%12-15R, %8-11R, %16-19R, %0-3R"},
+   { FLAGS_NONE, 0xfbe00060, 0xfff000f0, "umaal%c\t%12-15R, %8-11R, %16-19R, %0-3R"},
+   { FLAGS_MEMORY_ACCESS, 0xe8500f00, 0xfff00f00, "ldrex%c\t%12-15r, [%16-19r, #%0-7W]"},
+   { FLAGS_NONE, 0xf04f0000, 0xfbef8000, "mov%20's%c.w\t%8-11r, %M"},
+   { FLAGS_NONE, 0xf06f0000, 0xfbef8000, "mvn%20's%c.w\t%8-11r, %M"},
+   { FLAGS_NONE, 0xf810f000, 0xff70f000, "pld%c\t%a"},
+   { FLAGS_NONE, 0xfb200000, 0xfff000e0, "smlad%4'x%c\t%8-11R, %16-19R, %0-3R, %12-15R"},
+   { FLAGS_NONE, 0xfb300000, 0xfff000e0, "smlaw%4?tb%c\t%8-11R, %16-19R, %0-3R, %12-15R"},
+   { FLAGS_NONE, 0xfb400000, 0xfff000e0, "smlsd%4'x%c\t%8-11R, %16-19R, %0-3R, %12-15R"},
+   { FLAGS_NONE, 0xfb500000, 0xfff000e0, "smmla%4'r%c\t%8-11R, %16-19R, %0-3R, %12-15R"},
+   { FLAGS_NONE, 0xfb600000, 0xfff000e0, "smmls%4'r%c\t%8-11R, %16-19R, %0-3R, %12-15R"},
+   { FLAGS_NONE, 0xfbc000c0, 0xfff000e0, "smlald%4'x%c\t%12-15R, %8-11R, %16-19R, %0-3R"},
+   { FLAGS_NONE, 0xfbd000c0, 0xfff000e0, "smlsld%4'x%c\t%12-15R, %8-11R, %16-19R, %0-3R"},
+   { FLAGS_NONE, 0xeac00000, 0xfff08030, "pkhbt%c\t%8-11r, %16-19r, %S"},
+   { FLAGS_NONE, 0xeac00020, 0xfff08030, "pkhtb%c\t%8-11r, %16-19r, %S"},
+   { FLAGS_NONE, 0xf3400000, 0xfff08020, "sbfx%c\t%8-11r, %16-19r, %F"},
+   { FLAGS_NONE, 0xf3c00000, 0xfff08020, "ubfx%c\t%8-11r, %16-19r, %F"},
+   { FLAGS_NONE, 0xf8000e00, 0xff900f00, "str%wt%c\t%12-15r, %a"},
+   { FLAGS_NONE, 0xfb100000, 0xfff000c0, "smla%5?tb%4?tb%c\t%8-11r, %16-19r, %0-3r, %12-15r"},
+   { FLAGS_NONE, 0xfbc00080, 0xfff000c0, "smlal%5?tb%4?tb%c\t%12-15r, %8-11r, %16-19r, %0-3r"},
+   { FLAGS_NONE, 0xf3600000, 0xfff08020, "bfi%c\t%8-11r, %16-19r, %E"},
+   { FLAGS_NONE, 0xf8100e00, 0xfe900f00, "ldr%wt%c\t%12-15r, %a"},
+   { FLAGS_NONE, 0xf3000000, 0xffd08020, "ssat%c\t%8-11r, #%0-4d, %16-19r%s"},
+   { FLAGS_NONE, 0xf3800000, 0xffd08020, "usat%c\t%8-11r, #%0-4d, %16-19r%s"},
+   { FLAGS_NONE, 0xf2000000, 0xfbf08000, "addw%c\t%8-11r, %16-19r, %I"},
+   { FLAGS_NONE, 0xf2400000, 0xfbf08000, "movw%c\t%8-11r, %J"},
+   { FLAGS_NONE, 0xf2a00000, 0xfbf08000, "subw%c\t%8-11r, %16-19r, %I"},
+   { FLAGS_NONE, 0xf2c00000, 0xfbf08000, "movt%c\t%8-11r, %J"},
+   { FLAGS_NONE, 0xea000000, 0xffe08000, "and%20's%c.w\t%8-11r, %16-19r, %S"},
+   { FLAGS_NONE, 0xea200000, 0xffe08000, "bic%20's%c.w\t%8-11r, %16-19r, %S"},
+   { FLAGS_NONE, 0xea400000, 0xffe08000, "orr%20's%c.w\t%8-11r, %16-19r, %S"},
+   { FLAGS_NONE, 0xea600000, 0xffe08000, "orn%20's%c\t%8-11r, %16-19r, %S"},
+   { FLAGS_NONE, 0xea800000, 0xffe08000, "eor%20's%c.w\t%8-11r, %16-19r, %S"},
+   { FLAGS_NONE, 0xeb000000, 0xffe08000, "add%20's%c.w\t%8-11r, %16-19r, %S"},
+   { FLAGS_NONE, 0xeb400000, 0xffe08000, "adc%20's%c.w\t%8-11r, %16-19r, %S"},
+   { FLAGS_NONE, 0xeb600000, 0xffe08000, "sbc%20's%c.w\t%8-11r, %16-19r, %S"},
+   { FLAGS_NONE, 0xeba00000, 0xffe08000, "sub%20's%c.w\t%8-11r, %16-19r, %S"},
+   { FLAGS_NONE, 0xebc00000, 0xffe08000, "rsb%20's%c\t%8-11r, %16-19r, %S"},
+   { FLAGS_MEMORY_ACCESS, 0xe8400000, 0xfff00000, "strex%c\t%8-11r, %12-15r, [%16-19r, #%0-7W]"},
+   { FLAGS_NONE, 0xf0000000, 0xfbe08000, "and%20's%c.w\t%8-11r, %16-19r, %M"},
+   { FLAGS_NONE, 0xf0200000, 0xfbe08000, "bic%20's%c.w\t%8-11r, %16-19r, %M"},
+   { FLAGS_NONE, 0xf0400000, 0xfbe08000, "orr%20's%c.w\t%8-11r, %16-19r, %M"},
+   { FLAGS_NONE, 0xf0600000, 0xfbe08000, "orn%20's%c\t%8-11r, %16-19r, %M"},
+   { FLAGS_NONE, 0xf0800000, 0xfbe08000, "eor%20's%c.w\t%8-11r, %16-19r, %M"},
+   { FLAGS_NONE, 0xf1000000, 0xfbe08000, "add%20's%c.w\t%8-11r, %16-19r, %M"},
+   { FLAGS_NONE, 0xf1400000, 0xfbe08000, "adc%20's%c.w\t%8-11r, %16-19r, %M"},
+   { FLAGS_NONE, 0xf1600000, 0xfbe08000, "sbc%20's%c.w\t%8-11r, %16-19r, %M"},
+   { FLAGS_NONE, 0xf1a00000, 0xfbe08000, "sub%20's%c.w\t%8-11r, %16-19r, %M"},
+   { FLAGS_NONE, 0xf1c00000, 0xfbe08000, "rsb%20's%c\t%8-11r, %16-19r, %M"},
+   { FLAGS_MEMORY_ACCESS, 0xe8800000, 0xffd00000, "stmia%c.w\t%16-19r%21'!, %m"},
+   { FLAGS_MEMORY_ACCESS, 0xe8900000, 0xffd00000, "ldmia%c.w\t%16-19r%21'!, %m"},
+   { FLAGS_MEMORY_ACCESS, 0xe9000000, 0xffd00000, "stmdb%c\t%16-19r%21'!, %m"},
+   { FLAGS_MEMORY_ACCESS, 0xe9100000, 0xffd00000, "ldmdb%c\t%16-19r%21'!, %m"},
+   { FLAGS_MEMORY_ACCESS, 0xe9c00000, 0xffd000ff, "strd%c\t%12-15r, %8-11r, [%16-19r]"},
+   { FLAGS_MEMORY_ACCESS, 0xe9d00000, 0xffd000ff, "ldrd%c\t%12-15r, %8-11r, [%16-19r]"},
+   { FLAGS_MEMORY_ACCESS, 0xe9400000, 0xff500000, "strd%c\t%12-15r, %8-11r, [%16-19r, #%23`-%0-7W]%21'!%L"},
+   { FLAGS_MEMORY_ACCESS, 0xe9500000, 0xff500000, "ldrd%c\t%12-15r, %8-11r, [%16-19r, #%23`-%0-7W]%21'!%L"},
+   { FLAGS_MEMORY_ACCESS, 0xe8600000, 0xff700000, "strd%c\t%12-15r, %8-11r, [%16-19r], #%23`-%0-7W%L"},
+   { FLAGS_MEMORY_ACCESS, 0xe8700000, 0xff700000, "ldrd%c\t%12-15r, %8-11r, [%16-19r], #%23`-%0-7W%L"},
+   { FLAGS_MEMORY_ACCESS, 0xf8000000, 0xff100000, "str%w%c.w\t%12-15r, %a"},
+   { FLAGS_MEMORY_ACCESS, 0xf8100000, 0xfe100000, "ldr%w%c.w\t%12-15r, %a"},
 
    /* Filter out Bcc with cond=E or F, which are used for other instructions.  */
-   { 0xf3c08000, 0xfbc0d000, "undefined (bcc, cond=0xF)"},
-   { 0xf3808000, 0xfbc0d000, "undefined (bcc, cond=0xE)"},
-   { 0xf0008000, 0xf800d000, "b%22-25c.w\t%b%X"},
-   { 0xf0009000, 0xf800d000, "b%c.w\t%B%x"},
+   { FLAGS_NONE, 0xf3c08000, 0xfbc0d000, "undefined (bcc, cond=0xF)"},
+   { FLAGS_NONE, 0xf3808000, 0xfbc0d000, "undefined (bcc, cond=0xE)"},
+   { FLAGS_NONE, 0xf0008000, 0xf800d000, "b%22-25c.w\t%b%X"},
+   { FLAGS_NONE, 0xf0009000, 0xf800d000, "b%c.w\t%B%x"},
 
    /* These have been 32-bit since the invention of Thumb.  */
-   { 0xf000c000, 0xf800d001, "blx%c\t%B%x"},
-   { 0xf000d000, 0xf800d000, "bl%c\t%B%x"},
+   { FLAGS_NONE, 0xf000c000, 0xf800d001, "blx%c\t%B%x"},
+   { FLAGS_NONE, 0xf000d000, 0xf800d000, "bl%c\t%B%x"},
 
    /* Fallback.  */
-   { 0x00000000, 0x00000000, UNDEFINED_INSTRUCTION},
-   { 0, 0, 0}
+   { FLAGS_NONE, 0x00000000, 0x00000000, UNDEFINED_INSTRUCTION},
+   { FLAGS_NONE, 0, 0, 0}
 };
 
 static const char *const arm_conditional[] = {
@@ -547,13 +554,13 @@ static bfd_vma ifthen_address;
 #define COND_UNCOND 16
 
 static void
-print_insn_thumb16 (uint32_t pc, const struct disassemble_info *info, uint32_t given)
+print_insn_thumb16 (uint32_t pc, struct disassemble_info *info, uint32_t given)
 {
    const struct opcode16 *insn;
    void *stream = info->stream;
    fprintf_ftype func = info->fprintf_func;
-
-   for (insn = thumb_opcodes; insn->assembler; insn++)
+   for (insn = thumb_opcodes; insn->assembler; insn++) {
+      info->flags = insn->flags;
       if ((given & insn->mask) == insn->value) {
          signed long value_in_comment = 0;
          const char *c = insn->assembler;
@@ -803,7 +810,7 @@ print_insn_thumb16 (uint32_t pc, const struct disassemble_info *info, uint32_t g
             func (stream, "\t; 0x%lx", value_in_comment);
          return;
       }
-
+   }
    /* No match.  */
    abort ();
 }
@@ -1012,7 +1019,8 @@ print_insn_thumb32 (bfd_vma pc, struct disassemble_info *info, long given)
    //if (print_insn_coprocessor (pc, info, given, TRUE))
    //  return;
 
-   for (insn = thumb32_opcodes; insn->assembler; insn++)
+   for (insn = thumb32_opcodes; insn->assembler; insn++) {
+      info->flags = insn->flags;
       if ((given & insn->mask) == insn->value) {
          bfd_boolean is_unpredictable = FALSE;
          signed long value_in_comment = 0;
@@ -1548,14 +1556,31 @@ skip:
 
          return;
       }
-
+   }
    /* No match.  */
    abort ();
 }
 
+static uint32_t address_reference[1024];
+static uint32_t address_reference_count = 0;
+
 static void print_addr(uint32_t address, const struct disassemble_info *self)
 {
+   if (self->flags & FLAGS_MEMORY_ACCESS) {
+      address_reference[address_reference_count] = address;
+      address_reference_count = (address_reference_count + 1) % sizeof(address_reference);
+   }
    self->fprintf_func(self->stream, "0x%08X", address);
+}
+
+static bool is_address_reference(uint32_t addr)
+{
+   for (size_t i=0; i<address_reference_count; i++) {
+      if (address_reference[i] == addr) {
+         return true;
+      }
+   }
+   return false;
 }
 
 ptrdiff_t do_disassemble(uintptr_t addr)
@@ -1572,7 +1597,11 @@ ptrdiff_t do_disassemble(uintptr_t addr)
    uint8_t b15_13 = b15_11 >> 2;
    bool is_t32 = (b15_11 != 0x1c) && (b15_13 == 0x7);
    printf("0x%08X ", addr);
-   if (is_t32) {
+   if (is_address_reference(addr)) {
+      uint32_t val = *((uint32_t*)addr);
+      printf("%08X ; constant\n", val);
+      return sizeof(uint32_t);
+   } else if (is_t32) {
       uint16_t instr2 = *((uint16_t*)(addr + 2));
       uint32_t instr32 = (instr << 16) | instr2;
       printf("%08X ", instr32);
