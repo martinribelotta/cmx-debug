@@ -117,10 +117,8 @@ static void hexdump(const char *params)
          }
       }
    }
+   printf("\n%08X: ", addr);
    while (count) {
-      if ((addr % 16) == 0) {
-         printf("\n%08X: ", addr);
-      }
       switch(type) {
       case 'c':
          if (isprint(*((char*)addr))) {
@@ -145,6 +143,8 @@ static void hexdump(const char *params)
          break;
       }
       count--;
+      if (count && ((addr % 16) == 0))
+         printf("\n%08X: ", addr);
    }
    printf("\n");
 }
@@ -233,6 +233,26 @@ static void store_file(const char *params)
    printf("Writed %d bytes from 0x%08X to file %s\n", count, addr, filename);
 }
 
+static size_t typeSize(char c)
+{
+   switch(c) {
+   default:
+   case 'b': return sizeof(uint8_t);
+   case 'h': return sizeof(uint16_t);
+   case 'w': return sizeof(uint32_t);
+   }
+}
+
+static uint32_t toInt(const char *str, uint32_t defVal)
+{
+   uint32_t val;
+   return (sscanf(str, "%i", &val) != 1)? defVal : val;
+}
+
+static void writeMemory(size_t typeSize, uint32_t addr, uint32_t data)
+{
+   memcpy((void*) addr, &data, typeSize);
+}
 
 static void repl(void)
 {
@@ -248,12 +268,14 @@ static void repl(void)
    case 'H':
       puts(
          "HELP:\n"
-         "  h:                        this help\n"
-         "  x [c|w|h|b] [addr] [count]: hex dump in [c]har, [w]ord, [h]alf or [b]yte at addr, count bytes\n"
-         "  d [addr] [count]:         disassemble from addr count bytes\n"
-         "  a [addr]:                 assemble into addr\n"
-         "  l <file> [addr] [count]:  load count bytes from file to addr\n"
-         "  s <file> [addr] [count]:  store cound bytes in at addr file\n"
+         "  h:                       This help\n"
+         "  x [c|w|h|b] [addr] [n]:  Hex dump at addr, <n> bytes\n"
+         "  d [addr] [n]:            Disassemble from addr <n> bytes\n"
+         "  a [addr]:                Assemble into addr\n"
+         "  l [file] [addr] [n]:     Load <n> bytes from file to addr\n"
+         "  s [file] [addr] [n]:     Store <n> bytes in at addr file\n"
+         "  w [w|h|b] [addr] [data]: Write memory type <data> at <addr>\n"
+         "  c <a addr> <b addr> <n>: Compare <n> bytes from A to B <addr>\n"
       );
       break;
    case 'x':
@@ -283,6 +305,12 @@ static void repl(void)
    case 's':
    case 'S':
       store_file(nextword(ptr));
+      break;
+   case 'w':
+      writeMemory(typeSize(*(ptr=nextword(ptr))), toInt(ptr=nextword(ptr), as_ptr), toInt(ptr=nextword(ptr), 0));
+      break;
+   case 'c':
+      printf("TODO\n");
       break;
    case '\0':
       // EOL
