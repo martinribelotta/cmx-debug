@@ -31,6 +31,7 @@
 #include <errno.h>
 
 #include "disassembler.h"
+#include "fault.h"
 
 static uintptr_t as_ptr = 0;
 
@@ -326,6 +327,7 @@ extern void initialise_monitor_handles(void);
 int main()
 {
    initialise_monitor_handles();
+   fault_init();
    printf("Debugger console\n");
    while (1)
       repl();
