@@ -22,8 +22,11 @@ TARGET:=tdebug
 
 OUT:=build
 
+INCLUDES:=inc
+LIB_PATH:=lib
+
 SPECS:=nano rdimon
-LDSCRIPTS:=cmx-generic.ld
+LDSCRIPTS:=lib/cmx-generic.ld
 
 ARCH_FLAGS:=-mcpu=cortex-m3 -mthumb
 
@@ -55,8 +58,8 @@ else
 Q:=@
 endif
 
-SOURCES:=$(wildcard *.c)
-OBJECTS:=$(addprefix $(OUT)/, $(patsubst %.c, %.o, $(SOURCES)))
+SOURCES:=$(wildcard src/*.c)
+OBJECTS:=$(addprefix $(OUT)/, $(patsubst src/%.c, %.o, $(SOURCES)))
 
 ELF:=$(addprefix $(OUT)/, $(addsuffix .elf, $(TARGET)))
 LST:=$(patsubst %.elf, %.lst, $(ELF))
@@ -68,7 +71,7 @@ $(OUT)/:
 	@echo mkdir $@
 	$(Q)$(MD) $@
 
-$(OUT)/%.o: %.c | $(OUT)/
+$(OUT)/%.o: src/%.c | $(OUT)/
 	@echo CC $(notdir $<)
 	$(Q)$(CC) -c $(CFLAGS) -o $@ $<
 
