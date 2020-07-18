@@ -343,6 +343,19 @@ static void writeMemory(size_t typeSize, uint32_t addr, uint32_t data)
    memcpy((void*) addr, &data, typeSize);
 }
 
+static void memoryCompare(uint32_t a_addr, uint32_t b_addr, uint32_t count)
+{
+   uint8_t *a = (uint8_t*) a_addr;
+   uint8_t *b = (uint8_t*) b_addr;
+   for (uint32_t i = 0; i < count; i++) {
+      if (a[i] != b[i]) {
+         printf("DIFF a[0x%08X]:0x%02X != b[0x%08X]:0x%02X\n", &a[i], a[i], &b[i], b[i]);
+         return;
+      }
+   }
+   printf("EQUAL\n");
+}
+
 static void repl(void)
 {
    static char line[128];
@@ -403,7 +416,7 @@ static void repl(void)
       writeMemory(typeSize(*(ptr=nextword(ptr))), toInt(ptr=nextword(ptr), as_ptr), toInt(ptr=nextword(ptr), 0));
       break;
    case 'c':
-      printf("TODO\n");
+      memoryCompare(toInt(ptr=nextword(ptr), as_ptr), toInt(ptr=nextword(ptr), as_ptr), toInt(ptr=nextword(ptr), 1));
       break;
    case '\0':
       // EOL
