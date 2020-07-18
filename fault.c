@@ -168,9 +168,10 @@ void SVC_Handler(void)
       break;
    }
 }
-
+/*
 void DebugMon_Handler(void)
 {
    printf("DEBUG FAULT\n");
    while(1) {}
 }
+*/

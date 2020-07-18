@@ -114,6 +114,8 @@ static bool const2addr(const char *s, uint32_t *addr)
 
 static bool str2addr(const char *s, uint32_t *addr)
 {
+   if (!*s)
+      return false;
 #define FALLTHROUGH __attribute__((fallthrough))
    int radix = 10;
    if (*s == '0') {
@@ -164,7 +166,7 @@ static void setgetptr(const char *params)
 static void assemble(const char *params)
 {
    // TODO
-   puts("TODO");
+   puts("ASM TODO");
 }
 
 static void disassemble(const char *params)
@@ -356,6 +358,16 @@ static void memoryCompare(uint32_t a_addr, uint32_t b_addr, uint32_t count)
    printf("EQUAL\n");
 }
 
+static void executeTo(uint32_t codePtr, uint32_t spAddr)
+{
+   codePtr |= 1; // Ensure thumb instruction
+   if (spAddr != -1) {
+      __asm__ volatile("mov sp, %0": : "r" (spAddr));
+   }
+   void (*func)(void) = (void(*)(void)) codePtr;
+   func();
+}
+
 static void repl(void)
 {
    static char line[128];
@@ -370,7 +382,7 @@ static void repl(void)
    case 'H':
       puts(
          "HELP:\n"
-         "  h:                       This help\n"
+         "  h[h]:                    This help. One h is more vervose\n"
          "  x [c|w|h|b] [addr] [n]:  Hex dump at addr, <n> bytes\n"
          "  d [addr] [n]:            Disassemble from addr <n> bytes\n"
          "  a [addr]:                Assemble into addr\n"
@@ -378,11 +390,14 @@ static void repl(void)
          "  s [file] [addr] [n]:     Store <n> bytes in at addr file\n"
          "  w [w|h|b] [addr] [data]: Write memory type <data> at <addr>\n"
          "  c <a addr> <b addr> <n>: Compare <n> bytes from A to B <addr>\n"
+         "  g <addr> [sp]:           Execute <addr>. if specify set stack to [sp]\n"
       );
-      printf("The param <addr> may be specify a named constant using $<name>\n"
-             "known constants for <addr>:\n");
-      FOREACH(e, symbol_table)
-         printf("%-12s 0x%08X\n", e->symbol, e->value);
+      printf("The param <addr> may be specify a named constant using $<name>\n");
+      if (ptr[1] == 'h' || ptr[1] == 'H') {
+         printf("known constants for <addr>:\n");
+         FOREACH(e, symbol_table)
+            printf("%-12s 0x%08X\n", e->symbol, e->value);
+      }
       break;
    case 'x':
    case 'X':
@@ -417,6 +432,9 @@ static void repl(void)
       break;
    case 'c':
       memoryCompare(toInt(ptr=nextword(ptr), as_ptr), toInt(ptr=nextword(ptr), as_ptr), toInt(ptr=nextword(ptr), 1));
+      break;
+   case 'g':
+      executeTo(toInt(ptr=nextword(ptr), as_ptr), toInt(ptr=nextword(ptr), -1));
       break;
    case '\0':
       // EOL
