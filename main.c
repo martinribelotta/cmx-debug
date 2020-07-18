@@ -33,6 +33,36 @@
 #include "disassembler.h"
 #include "fault.h"
 
+#define ARRAYCOUNT(arr)  (sizeof(arr) / sizeof(*(arr)))
+#define FOREACH(e, arr) for (typeof(*arr) *e = arr; e < arr + ARRAYCOUNT(arr); e++)
+
+typedef struct {
+   const char *symbol;
+   uint32_t value;
+} const_symbol_t;
+
+static const const_symbol_t symbol_table[] = {
+   { "SCB.ACTLR", 0xE000E008 },
+   { "SCB.CPUID", 0xE000ED00 },
+   { "SCB.ICSR",  0xE000ED04 },
+   { "SCB.VTOR",  0xE000ED08 },
+   { "SCB.AIRCR", 0xE000ED0C },
+   { "SCB.SCR",   0xE000ED10 },
+   { "SCB.CCR",   0xE000ED14 },
+   { "SCB.SHPR1", 0xE000ED18 },
+   { "SCB.SHPR2", 0xE000ED1C },
+   { "SCB.SHPR3", 0xE000ED20 },
+   { "SCB.SHCRS", 0xE000ED24 },
+   { "SCB.CFSR",  0xE000ED28 },
+   { "SCB.MMSR",  0xE000ED28 },
+   { "SCB.BFSR",  0xE000ED29 },
+   { "SCB.UFSR",  0xE000ED2A },
+   { "SCB.HFSR",  0xE000ED2C },
+   { "SCB.MMAR",  0xE000ED34 },
+   { "SCB.BFAR",  0xE000ED38 },
+   { "SCB.AFSR",  0xE000ED3C },
+};
+
 static uintptr_t as_ptr = 0;
 
 static void promt(void)
@@ -60,11 +90,69 @@ static const char *nextword(const char *s)
    return skipspaces(skipword(s));
 }
 
+static const int cmpword(const char *s, const char *w)
+{
+   while (*s && *w && !isspace(*s)) {
+      if (*s != *w)
+         return *s - *w;
+      s++;
+      w++;
+   }
+   return 0;
+}
+
+static bool const2addr(const char *s, uint32_t *addr)
+{
+   FOREACH(e, symbol_table) {
+      if (cmpword(s, e->symbol) == 0) {
+         *addr = e->value;
+         return true;
+      }
+   }
+   return false;
+}
+
+static bool str2addr(const char *s, uint32_t *addr)
+{
+#define FALLTHROUGH __attribute__((fallthrough))
+   int radix = 10;
+   if (*s == '0') {
+      switch (*++s) {
+      case 'X': FALLTHROUGH;
+      case 'x': radix = 16; s++; break;
+      case 'B': FALLTHROUGH;
+      case 'b': radix = 2; s++; break;
+      case 'o': FALLTHROUGH;
+      case 'O': s++; FALLTHROUGH;
+      default: radix = 8; break;
+      }
+   } else if (*s == '$') {
+      return const2addr(++s, addr);
+   }
+#undef FALLTHROUGH
+   uint32_t acc = 0;
+   while (*s && !isspace(*s)) {
+      int c = *s++;
+      if (isdigit(c)) {
+         c -= '0';
+      } else if (isalpha(c)) {
+         c -= isupper(c)? 'A' - 10 : 'a' - 10;
+      } else
+         return false;
+      if (c >= radix)
+         return false;
+      acc *= radix;
+      acc += c;
+   }
+   *addr = acc;
+   return true;
+}
+
 static void setgetptr(const char *params)
 {
    if (*params) {
-      uintptr_t addr;
-      if (sscanf(params, "%i", &addr) != 1) {
+      uint32_t addr;
+      if (!str2addr(params, &addr)) {
          printf("Error reading ip: %s\n", params);
          return;
       }
@@ -81,12 +169,12 @@ static void assemble(const char *params)
 
 static void disassemble(const char *params)
 {
-   ptrdiff_t count = 32;
+   uint32_t count = 32;
    if (*params) {
       setgetptr(params);
       params = nextword(params);
       if (*params) {
-         if (sscanf(params, "%i", &count) != 1) {
+         if (str2addr(params, &count) != 1) {
             printf("Cannot decode count %s\n", params);
             return;
          }
@@ -98,20 +186,20 @@ static void disassemble(const char *params)
 
 static void hexdump(const char *params)
 {
-   ptrdiff_t count = 32;
-   uintptr_t addr = as_ptr;
+   uint32_t count = 1;
+   uint32_t addr = as_ptr;
    char type = 'b';
    if (*params) {
       type = *params++;
       params = nextword(params);
       if (*params) {
-         if (sscanf(params, "%i", &addr) != 1) {
+         if (str2addr(params, &addr) != 1) {
             printf("error decoding addr %s\n", params);
             return;
          }
          params = nextword(params);
          if (*params) {
-            if (sscanf(params, "%i", &count) != 1) {
+            if (str2addr(params, &count) != 1) {
                printf("error decoding count %s\n", params);
                return;
             }
@@ -164,13 +252,13 @@ static void load_file(const char *params)
       *ptr = 0;
       params = skipspaces(params);
       if (*params) {
-         if (sscanf(params, "%i", &addr) != 1) {
+         if (str2addr(params, &addr) != 1) {
             printf("Cannot decode %s as addr\n", params);
             return;
          }
          params = nextword(params);
          if (*params) {
-            if (sscanf(params, "%i", &count) != 1) {
+            if (str2addr(params, &count) != 1) {
                printf("Cannot decode %s as count\n", params);
                return;
             }
@@ -206,13 +294,13 @@ static void store_file(const char *params)
       *ptr = 0;
       params = skipspaces(params);
       if (*params) {
-         if (sscanf(params, "%i", &addr) != 1) {
+         if (str2addr(params, &addr) != 1) {
             printf("Cannot decode %s as addr\n", params);
             return;
          }
          params = nextword(params);
          if (*params) {
-            if (sscanf(params, "%i", &count) != 1) {
+            if (str2addr(params, &count) != 1) {
                printf("Cannot decode %s as count\n", params);
                return;
             }
@@ -247,7 +335,7 @@ static size_t typeSize(char c)
 static uint32_t toInt(const char *str, uint32_t defVal)
 {
    uint32_t val;
-   return (sscanf(str, "%i", &val) != 1)? defVal : val;
+   return (str2addr(str, &val) != 1)? defVal : val;
 }
 
 static void writeMemory(size_t typeSize, uint32_t addr, uint32_t data)
@@ -278,6 +366,10 @@ static void repl(void)
          "  w [w|h|b] [addr] [data]: Write memory type <data> at <addr>\n"
          "  c <a addr> <b addr> <n>: Compare <n> bytes from A to B <addr>\n"
       );
+      printf("The param <addr> may be specify a named constant using $<name>\n"
+             "known constants for <addr>:\n");
+      FOREACH(e, symbol_table)
+         printf("%-12s 0x%08X\n", e->symbol, e->value);
       break;
    case 'x':
    case 'X':

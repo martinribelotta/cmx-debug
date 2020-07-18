@@ -112,6 +112,22 @@ static void bf_call_handler_main(context_t *ctx, uint32_t lr)
       uint8_t d;
    } bfsr;
    bfsr.d = (SCB->CFSR >> 8) & 0xFF;
+   printf(
+         "IBUSERR=%d\n"
+         "PRECISERR=%d\n"
+         "IMPRECISERR=%d\n"
+         "UNSTKERR=%d\n"
+         "STKERR=%d\n"
+         "LSPERR=%d\n"
+         "BFARVALID=%d\n",
+         bfsr.IBUSERR,
+         bfsr.PRECISERR,
+         bfsr.IMPRECISERR,
+         bfsr.UNSTKERR,
+         bfsr.STKERR,
+         bfsr.LSPERR,
+         bfsr.BFARVALID
+   );
    if (bfsr.BFARVALID) {
       printf("at addr 0x%08X\n", SCB->BFAR);
    }
