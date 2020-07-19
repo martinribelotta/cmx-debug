@@ -39,7 +39,6 @@ static inline void handle_trampoline(void (*func)(context_t *ctx, uint32_t lr))
       "  b %[ptr]\t\n"
       : /* no output */
       : [ptr] "i" (func) /* input */
-      : "r0" /* clobber */
    );
 }
 
@@ -134,7 +133,7 @@ static void bf_call_handler_main(context_t *ctx, uint32_t lr)
    __asm__ volatile("mov lr, %1\n"
                     "mov sp, %0\n"
                     "pop {r4-r11}\n"
-                    "bx lr\n": : "r" (&jmp_ctx), "r" (lr) : "r0");
+                    "bx lr\n": : "r" (&jmp_ctx), "r" (lr));
 }
 
 void BusFault_Handler(void) __attribute((naked));
@@ -151,13 +150,13 @@ void UsageFault_Handler(void)
 
 void SVC_Handler(void)
 {
-   register context_t *ctx __asm__("r0");
+   register context_t *ctx;
    asm volatile(
       "tst lr, #4\t\n" /* Check EXC_RETURN[2] */
       "ite eq\t\n"
-      "mrseq r0, msp\t\n"
-      "mrsne r0, psp\t\n"
-      "stmdb r0!, {r4-r11}\n"
+      "mrseq %0, msp\t\n"
+      "mrsne %0, psp\t\n"
+      "stmdb %0!, {r4-r11}\n":: "r"(ctx)
    );
    unsigned int svc_number = ((char *)ctx->pc)[-2];
    switch (svc_number) {

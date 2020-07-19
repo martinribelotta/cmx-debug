@@ -164,10 +164,27 @@ static void setgetptr(const char *params)
    printf("(dis)assembler addres: 0x%08X\n", as_ptr);
 }
 
+static void as_promt(uint32_t ptr)
+{
+   printf("0x%08X> ", ptr);
+   fflush(stdout);
+}
+
 static void assemble(const char *params)
 {
+   static char line[80];
    // TODO
    puts("ASM TODO");
+   uint32_t addr = toInt(params, as_ptr);
+   while (1) {
+      as_promt(addr);
+      fgets(line, sizeof(line) - 1, stdin);
+      if (line[0] != 0) {
+         addr += assemble_line(line, addr);
+      } else {
+         break;
+      }
+   }
 }
 
 static void disassemble(const char *params)
