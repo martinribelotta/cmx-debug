@@ -32,6 +32,7 @@
 
 #include "disassembler.h"
 #include "fault.h"
+#include "ucmsis.h"
 
 #define ARRAYCOUNT(arr)  (sizeof(arr) / sizeof(*(arr)))
 #define FOREACH(e, arr) for (typeof(*arr) *e = arr; e < arr + ARRAYCOUNT(arr); e++)
@@ -368,6 +369,25 @@ static void executeTo(uint32_t codePtr, uint32_t spAddr)
    func();
 }
 
+__attribute__((optimize(3), noreturn))
+void executeBoot(uint32_t vtoraddr)
+{
+   __asm__ volatile ("cpsid i" : : : "memory");
+   // Disable all interrupts manually
+   for (int i = 0; i < 8; i++)
+      NVIC->ICER[i] = 0xFFFFFFFF;
+   // Clear pending IRQs
+   for (int i = 0; i < 8; i++)
+      NVIC->ICPR[i] = 0xFFFFFFFF;
+   SCB->VTOR = vtoraddr;
+   uint32_t sp = ((volatile uint32_t*) vtoraddr)[0];
+   uint32_t pc = ((volatile uint32_t*) vtoraddr)[1];
+   __set_CONTROL(__get_CONTROL() & ~1UL);
+   __set_MSP(sp);
+   __asm__ volatile("bx\t%0"::"r" (pc));
+   __builtin_unreachable();
+}
+
 static void repl(void)
 {
    static char line[128];
@@ -391,6 +411,7 @@ static void repl(void)
          "  w [w|h|b] [addr] [data]: Write memory type <data> at <addr>\n"
          "  c <a addr> <b addr> <n>: Compare <n> bytes from A to B <addr>\n"
          "  g <addr> [sp]:           Execute <addr>. if specify set stack to [sp]\n"
+         "  gb <vector>:             Execute app from VTOR addr in <vector>\n\n"
       );
       printf("The param <addr> may be specify a named constant using $<name>\n");
       if (ptr[1] == 'h' || ptr[1] == 'H') {
@@ -434,7 +455,11 @@ static void repl(void)
       memoryCompare(toInt(ptr=nextword(ptr), as_ptr), toInt(ptr=nextword(ptr), as_ptr), toInt(ptr=nextword(ptr), 1));
       break;
    case 'g':
-      executeTo(toInt(ptr=nextword(ptr), as_ptr), toInt(ptr=nextword(ptr), -1));
+      if (ptr[1] == 'b') {
+         executeBoot(toInt(ptr=nextword(ptr), as_ptr));
+      } else {
+         executeTo(toInt(ptr=nextword(ptr), as_ptr), toInt(ptr=nextword(ptr), -1));
+      }
       break;
    case '\0':
       // EOL

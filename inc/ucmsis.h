@@ -182,6 +182,27 @@ typedef struct {
    __IOM uint32_t DEMCR;                  /*!< Offset: 0x00C (R/W)  Debug Exception and Monitor Control Register */
 } CoreDebug_Type;
 
+
+__attribute__((always_inline))
+static inline uint32_t __get_CONTROL(void)
+{
+   uint32_t tmp;
+   __asm__ volatile("mrs\t%0, CONTROL\n":"=r" (tmp));
+   return tmp;
+}
+
+__attribute__((always_inline))
+static inline void __set_CONTROL(uint32_t tmp)
+{
+   __asm__ volatile("msr\tCONTROL, %0\n"::"r" (tmp));
+}
+
+__attribute__((always_inline))
+static inline void __set_MSP(uint32_t tmp)
+{
+   __asm__ volatile("msr\tMSP, %0\n"::"r" (tmp));
+}
+
 #ifdef __cplusplus
 }
 #endif
