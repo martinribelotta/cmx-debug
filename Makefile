@@ -26,9 +26,11 @@ INCLUDES:=inc
 LIB_PATH:=lib
 
 SPECS:=nano rdimon
-LDSCRIPTS:=lib/cmx-generic.ld
+LDSCRIPTS?=lib/cmx-generic.ld
 
 ARCH_FLAGS:=-mcpu=cortex-m3 -mthumb
+
+PIC:=-fpie -mno-pic-data-is-text-relative -mno-single-pic-base
 
 CFLAGS:=$(ARCH_FLAGS)
 CFLAGS+=-Og -g3
@@ -90,3 +92,9 @@ $(BIN): $(ELF) | $(OUT)/
 clean:
 	@echo CLEAN
 	$(Q)$(RM) $(OUT)/
+
+run: $(BIN)
+	openocd -d0 -c "set __ELF_FILE__ $<" -f scripts/run-bluepill2.cfg
+
+debug: $(ELF)
+	openocd -d0 -f scripts/run-bluepill2-dbg.cfg

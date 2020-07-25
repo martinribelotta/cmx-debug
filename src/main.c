@@ -30,12 +30,15 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include "assembler.h"
 #include "disassembler.h"
 #include "fault.h"
 #include "ucmsis.h"
 
 #define ARRAYCOUNT(arr)  (sizeof(arr) / sizeof(*(arr)))
 #define FOREACH(e, arr) for (typeof(*arr) *e = arr; e < arr + ARRAYCOUNT(arr); e++)
+
+static uint32_t toInt(const char *str, uint32_t defVal);
 
 typedef struct {
    const char *symbol;
@@ -164,25 +167,20 @@ static void setgetptr(const char *params)
    printf("(dis)assembler addres: 0x%08X\n", as_ptr);
 }
 
-static void as_promt(uint32_t ptr)
-{
-   printf("0x%08X> ", ptr);
-   fflush(stdout);
-}
-
 static void assemble(const char *params)
 {
    static char line[80];
-   // TODO
-   puts("ASM TODO");
    uint32_t addr = toInt(params, as_ptr);
    while (1) {
-      as_promt(addr);
+      printf("0x%08X> ", addr);
+      fflush(stdout);
       fgets(line, sizeof(line) - 1, stdin);
-      if (line[0] != 0) {
-         addr += assemble_line(line, addr);
-      } else {
+      if (!line[0] || line[0] == '\n')
          break;
+      if (assemble_line(line, addr)) {
+         addr += do_disassemble(addr);
+      } else {
+         printf("ASM ERROR: %s\n", assembler_error());
       }
    }
 }

@@ -1,0 +1,18 @@
+{
+    "configurations": [
+        {
+            "name": "embedded",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "compilerArgs": [
+                "-mcpu=cortex-m3", "-mthumb"
+            ],
+            "compilerPath": "/opt/gcc-arm-embedded/bin//arm-none-eabi-gcc",
+            "cStandard": "c11",
+            "cppStandard": "gnu++14",
+            "intelliSenseMode": "gcc-arm"
+        }
+    ],
+    "version": 4
+}

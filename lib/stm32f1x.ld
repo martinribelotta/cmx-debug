@@ -23,7 +23,7 @@ ENTRY(Reset_Handler)
 MEMORY
 {
    RAM (xrw) : ORIGIN = 0x20000000, LENGTH = 20K
-   ROM (rx)  : ORIGIN = 0x00000000, LENGTH = 64K
+   ROM (rx)  : ORIGIN = 0x08000000, LENGTH = 64K
 }
 
 _estack = ORIGIN(RAM) + LENGTH(RAM);

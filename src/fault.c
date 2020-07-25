@@ -35,10 +35,12 @@ static inline void handle_trampoline(void (*func)(context_t *ctx, uint32_t lr))
       "  mrsne r0, PSP\n"
       "  stmdb r0!, {r4-r11}\n"
       "  mov sp, r0\n"
-      "  mov r1, lr\n"
-      "  b %[ptr]\t\n"
+      "  mov r1, lr\n");
+   
+   __asm__ volatile (
+      "  bx %[ptr]\t\n"
       : /* no output */
-      : [ptr] "i" (func) /* input */
+      : [ptr] "r" (func) /* input */
    );
 }
 
