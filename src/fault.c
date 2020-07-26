@@ -25,7 +25,13 @@ typedef struct {
 context_t jmp_ctx;
 uint32_t saved_sp;
 
-static inline void handle_trampoline(void (*func)(context_t *ctx, uint32_t lr)) __attribute__((always_inline));
+__attribute__((always_inline))
+static inline void trigger_pendsv(void)
+{
+   SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
+}
+
+__attribute__((always_inline))
 static inline void handle_trampoline(void (*func)(context_t *ctx, uint32_t lr))
 {
    __asm__ volatile (
@@ -35,16 +41,15 @@ static inline void handle_trampoline(void (*func)(context_t *ctx, uint32_t lr))
       "  mrsne r0, PSP\n"
       "  stmdb r0!, {r4-r11}\n"
       "  mov sp, r0\n"
-      "  mov r1, lr\n");
-   
-   __asm__ volatile (
-      "  bx %[ptr]\t\n"
+      "  mov r1, lr\n"
+      "  b %[ptr]\t\n"
       : /* no output */
-      : [ptr] "r" (func) /* input */
+      : [ptr] "i" (func) /* input */
+      : "r0" /* clobber */
    );
 }
 
-static void int_setjmp(void) __attribute((naked));
+__attribute((naked))
 static void int_setjmp(void)
 {
    __asm__ volatile(
@@ -63,6 +68,7 @@ void fault_init(void)
    SCB->SHCSR |= SCB_SHCSR_USGFAULTENA_Msk |
                  SCB_SHCSR_BUSFAULTENA_Msk |
                  SCB_SHCSR_MEMFAULTENA_Msk;
+   __NVIC_SetPriority(PendSV_IRQn, 0xff);
    int_setjmp();
 }
 
@@ -132,13 +138,10 @@ static void bf_call_handler_main(context_t *ctx, uint32_t lr)
    if (bfsr.BFARVALID) {
       printf("at addr 0x%08X\n", SCB->BFAR);
    }
-   __asm__ volatile("mov lr, %1\n"
-                    "mov sp, %0\n"
-                    "pop {r4-r11}\n"
-                    "bx lr\n": : "r" (&jmp_ctx), "r" (lr));
+   trigger_pendsv();
 }
 
-void BusFault_Handler(void) __attribute((naked));
+__attribute((naked))
 void BusFault_Handler(void)
 {
    handle_trampoline(bf_call_handler_main);
@@ -176,3 +179,11 @@ void DebugMon_Handler(void)
    while(1) {}
 }
 */
+
+__attribute__((naked))
+void PendSV_Handler(void)
+{
+   __asm__ volatile("mov sp, %0\n"
+                    "pop {r4-r11}\n"
+                    "bx lr\n": : "r" (&jmp_ctx));
+}
