@@ -16,6 +16,22 @@ extern "C" {
 #define     __OM     volatile            /*! Defines 'write only' structure member permissions */
 #define     __IOM    volatile            /*! Defines 'read / write' structure member permissions */
 
+#define __NVIC_PRIO_BITS          8U
+
+typedef enum IRQn
+{
+/* -------------------  Processor Exceptions Numbers  ----------------------------- */
+  NonMaskableInt_IRQn           = -14,     /*  2 Non Maskable Interrupt */
+  HardFault_IRQn                = -13,     /*  3 HardFault Interrupt */
+
+
+
+  SVCall_IRQn                   =  -5,     /* 11 SV Call Interrupt */
+
+  PendSV_IRQn                   =  -2,     /* 14 Pend SV Interrupt */
+  SysTick_IRQn                  =  -1,     /* 15 System Tick Interrupt */
+
+} IRQn_Type;
 
 /* Memory mapping of Core Hardware */
 #define SCS_BASE            (0xE000E000UL)                            /*!< System Control Space Base Address */
@@ -54,6 +70,9 @@ typedef struct {
    uint32_t RESERVED5[644U];
    __OM  uint32_t STIR;                   /*!< Offset: 0xE00 ( /W)  Software Trigger Interrupt Register */
 }  NVIC_Type;
+
+#define SCB_ICSR_PENDSVSET_Pos             28U                                            /*!< SCB ICSR: PENDSVSET Position */
+#define SCB_ICSR_PENDSVSET_Msk             (1UL << SCB_ICSR_PENDSVSET_Pos)                /*!< SCB ICSR: PENDSVSET Mask */
 
 /**
   \brief  Structure type to access the System Control Block (SCB).
@@ -201,6 +220,28 @@ __attribute__((always_inline))
 static inline void __set_MSP(uint32_t tmp)
 {
    __asm__ volatile("msr\tMSP, %0\n"::"r" (tmp));
+}
+
+/**
+  \brief   Set Interrupt Priority
+  \details Sets the priority of a device specific interrupt or a processor exception.
+           The interrupt number can be positive to specify a device specific interrupt,
+           or negative to specify a processor exception.
+  \param [in]      IRQn  Interrupt number.
+  \param [in]  priority  Priority to set.
+  \note    The priority cannot be set for every processor exception.
+ */
+__attribute__((always_inline))
+static inline void __NVIC_SetPriority(IRQn_Type IRQn, uint32_t priority)
+{
+  if ((int32_t)(IRQn) >= 0)
+  {
+    NVIC->IP[((uint32_t)IRQn)]               = (uint8_t)((priority << (8U - __NVIC_PRIO_BITS)) & (uint32_t)0xFFUL);
+  }
+  else
+  {
+    SCB->SHP[(((uint32_t)IRQn) & 0xFUL)-4UL] = (uint8_t)((priority << (8U - __NVIC_PRIO_BITS)) & (uint32_t)0xFFUL);
+  }
 }
 
 #ifdef __cplusplus
