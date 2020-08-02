@@ -1,3 +1,5 @@
+[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/martinribelotta/cmx-debug)
+
 # Thumb/Thumb2 monitor-debug utility
 
 This program intent to provide similar function as MSDOS command
